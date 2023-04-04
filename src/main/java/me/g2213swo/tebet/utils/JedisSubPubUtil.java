@@ -5,7 +5,7 @@ import net.mamoe.mirai.Bot;
 import redis.clients.jedis.JedisPubSub;
 
 public class JedisSubPubUtil extends JedisPubSub {
-    private final Bot TebetBot = Tebet.INSTANCE.getTebetBot();
+    private final Bot TebetBot = Tebet.instance.getTebetBot();
 
 
     @Override

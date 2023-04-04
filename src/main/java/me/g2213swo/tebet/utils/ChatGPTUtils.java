@@ -3,8 +3,8 @@ package me.g2213swo.tebet.utils;
 import com.jayway.jsonpath.JsonPath;
 import me.g2213swo.tebet.ChatMode;
 import me.g2213swo.tebet.Tebet;
+import net.mamoe.mirai.internal.deps.okhttp3.*;
 import net.mamoe.mirai.utils.MiraiLogger;
-import okhttp3.*;
 import redis.clients.jedis.Jedis;
 
 import java.io.IOException;
@@ -20,7 +20,7 @@ public class ChatGPTUtils {
     private static final List<String> previousMultiMessage = new ArrayList<>();
 
     private static final Jedis jedis = JedisUtil.getJedis();
-    private static final MiraiLogger logger = Tebet.INSTANCE.getLogger();
+    private static final MiraiLogger logger = Tebet.instance.getLogger();
 
     /**
      * This method generates GPT text.
@@ -116,7 +116,7 @@ public class ChatGPTUtils {
                         .url("https://api.openai.com/v1/chat/completions")
                         .method("POST", body)
                         .addHeader("Content-Type", "application/json")
-                        .addHeader("Authorization", "Bearer " + "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")
+                        .addHeader("Authorization", "Bearer " + Config.INSTANCE.api_key.get())
                         .build();
                 Response response = client.newCall(request).execute();
                 String json = response.body().string();
