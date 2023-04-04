@@ -10,11 +10,12 @@ public class JedisSubPubUtil extends JedisPubSub {
 
     @Override
     public void onMessage(String channel, String message) {
-        TebetBot.getFriend(2057581537).sendMessage("onMessage"+"---"+channel + ":" + message);
+//        TebetBot.getFriend(2057581537).sendMessage("onMessage"+"---"+channel + ":" + message);
     }
 
     @Override
     public void onSubscribe(String channel, int subscribedChannels) {
-        TebetBot.getFriend(2057581537).sendMessage("onSubscribe" + "---" + channel + ":" + subscribedChannels);
+//        TebetBot.getFriend(2057581537).sendMessage("onSubscribe" + "---" + channel + ":" + subscribedChannels);
     }
+
 }

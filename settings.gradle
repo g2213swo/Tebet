@@ -1,1 +1,3 @@
 rootProject.name = 'Tebet'
+include 'MineTebet'
+

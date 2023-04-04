@@ -41,7 +41,7 @@ public final class Tebet extends JavaPlugin {
             try (Jedis jedis = JedisUtil.getJedis()) {
                 logger.info("JedisSub is enabled!");
                 // 订阅频道消息
-                jedis.subscribe(new JedisSubPubUtil(), "messageChannel");
+                jedis.subscribe(new JedisSubPubUtil(), "openai");
             } catch (Exception e) {
                 logger.warning("异常: " + e.getMessage());
             }
