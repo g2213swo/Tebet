@@ -1,17 +1,24 @@
 package me.g2213swo.tebet.listener;
 
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import me.g2213swo.tebet.ChatMode;
+import me.g2213swo.tebet.Feeling;
+import me.g2213swo.tebet.Tebet;
 import me.g2213swo.tebet.utils.ChatGPTUtils;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.message.data.*;
+import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.util.concurrent.ExecutionException;
 
 public class TebetMessage implements ListenerHost {
 
+
+    private static final MiraiLogger logger = Tebet.instance.getLogger();
 
     /**
      * 私聊
@@ -24,9 +31,29 @@ public class TebetMessage implements ListenerHost {
         String message = event.getMessage().contentToString();
         try {
             String replay = ChatGPTUtils.generateGPTText(message, ChatMode.PRIVATE_ONLY, event.getFriend().getId()).get();
-            event.getFriend().sendMessage(replay);
-        } catch (ExecutionException | InterruptedException e) {
-            event.getFriend().sendMessage("出错了");
+            String content = JsonPath.read(replay, "$.content");
+            int feeling = JsonPath.read(replay, "$.feeling");
+            Feeling feelingEnum = Feeling.values()[feeling + 3];
+            MessageChain messageChain = new MessageChainBuilder()
+                    .append(content)
+                    .append("\n")
+                    .append("情绪：")
+                    .append(feelingEnum.getFeelingName())
+                    .build();
+            event.getFriend().sendMessage(messageChain);
+        } catch (ExecutionException | InterruptedException | PathNotFoundException e) {
+            if (e instanceof PathNotFoundException) {
+                //删除所有特殊字符
+                String contentEscaped = message.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
+                if (contentEscaped.length() == 0) {
+                    event.getFriend().sendMessage("很抱歉，Tebet出错了");
+                }else {
+                    event.getFriend().sendMessage(contentEscaped);
+                }
+            }
+            else {
+                event.getFriend().sendMessage("很抱歉，Tebet出错了");
+            }
         }
     }
 
@@ -60,7 +87,7 @@ public class TebetMessage implements ListenerHost {
                         event.getGroup().sendMessage(messageChain);
 
                     } catch (ExecutionException | InterruptedException e) {
-                        event.getGroup().sendMessage("出错了");
+                        event.getGroup().sendMessage("很抱歉，Tebet出错了😟");
                     }
                 }
             }
