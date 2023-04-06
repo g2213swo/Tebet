@@ -6,6 +6,7 @@ import me.g2213swo.tebet.ChatMode;
 import me.g2213swo.tebet.Feeling;
 import me.g2213swo.tebet.Tebet;
 import me.g2213swo.tebet.utils.ChatGPTUtils;
+import me.g2213swo.tebet.utils.FeelingUtil;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
@@ -34,12 +35,26 @@ public class TebetMessage implements ListenerHost {
             String content = JsonPath.read(replay, "$.content");
             int feeling = JsonPath.read(replay, "$.feeling");
             Feeling feelingEnum = Feeling.values()[feeling + 3];
-            MessageChain messageChain = new MessageChainBuilder()
-                    .append(content)
-                    .append("\n")
-                    .append("情绪：")
-                    .append(feelingEnum.getFeelingName())
-                    .build();
+            Image feelingImage = FeelingUtil.getFeelingImage(feelingEnum);
+            MessageChain messageChain;
+            if (feelingImage == null) {
+                logger.warning("情绪图片获取失败");
+                messageChain = new MessageChainBuilder()
+                        .append(content)
+                        .append("\n")
+                        .append("情绪：")
+                        .append(feelingEnum.getFeelingName())
+                        .build();
+            } else {
+                messageChain = new MessageChainBuilder()
+                        .append(content)
+                        .append("\n")
+                        .append("情绪：")
+                        .append(feelingEnum.getFeelingName())
+                        .append("\n")
+                        .append(feelingImage)
+                        .build();
+            }
             event.getFriend().sendMessage(messageChain);
         } catch (ExecutionException | InterruptedException | PathNotFoundException e) {
             if (e instanceof PathNotFoundException) {
@@ -47,11 +62,10 @@ public class TebetMessage implements ListenerHost {
                 String contentEscaped = message.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
                 if (contentEscaped.length() == 0) {
                     event.getFriend().sendMessage("很抱歉，Tebet出错了");
-                }else {
+                } else {
                     event.getFriend().sendMessage(contentEscaped);
                 }
-            }
-            else {
+            } else {
                 event.getFriend().sendMessage("很抱歉，Tebet出错了");
             }
         }

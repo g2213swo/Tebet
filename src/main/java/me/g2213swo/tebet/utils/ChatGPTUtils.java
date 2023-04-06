@@ -72,7 +72,7 @@ public class ChatGPTUtils {
                     .append("{\"role\": \"assistant\", \"content\": \"")
                     .append("From now on, you can only respond to me with a JSON string and cannot include any other prefixes. The JSON object should include the following properties:" +
                             "'content', a string type, represents the output result." +
-                            "'feeling', an integer type, represents the emotion you have during the conversation. '0' means neutral, '-1' means angry, '-2' means sad, '-3' means frustrated, '1' means happy, and '2' means excited. You can only use these specific numbers.")
+                            "'feeling', an integer type, represents the emotion you have during the conversation. '0' means neutral, '-1' means bored, '-2' means sad, '-3' means frustrated, '1' means happy, and '2' means excited. You can only use these specific numbers.")
                     .append("\"},\n        ")
                     .append("{\"role\": \"assistant\", \"content\": \"")
                     .append("你好呀Tebet！我是可爱的玩家！")
@@ -141,7 +141,7 @@ public class ChatGPTUtils {
                 //debug
                 logger.info(content);
 
-                String contentWithoutLineBreaks = content.replaceAll("[^a-zA-Z0-9\"\\u4E00-\\u9FA5]+", "\\\\$0");
+                String contentWithoutLineBreaks = content.replaceAll("[^a-zA-Z0-9\\u4E00-\\u9FA5]+", "\\\\$0");
                 String message = contentWithoutLineBreaks.replaceAll("([\\\\\"'\\\\])", "\\\\$0");
                 if (chatMode == ChatMode.GROUP_ONLY) {
                     previousMultiMessage.add(input);
