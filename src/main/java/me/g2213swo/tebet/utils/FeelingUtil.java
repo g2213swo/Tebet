@@ -52,7 +52,7 @@ public class FeelingUtil {
             return null;
         }
         File imageFile = imageFiles.get((int) (Math.random() * imageFiles.size()));
-
+        imageFiles.clear();
         return uploadImage(imageFile);
     }
 

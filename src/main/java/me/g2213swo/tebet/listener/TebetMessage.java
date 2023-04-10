@@ -2,7 +2,7 @@ package me.g2213swo.tebet.listener;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import me.g2213swo.tebet.ChatMode;
+import me.g2213swo.tebet.model.ChatMode;
 import me.g2213swo.tebet.Feeling;
 import me.g2213swo.tebet.Tebet;
 import me.g2213swo.tebet.utils.ChatGPTUtils;
@@ -20,7 +20,7 @@ public class TebetMessage implements ListenerHost {
 
 
     private static final MiraiLogger logger = Tebet.instance.getLogger();
-
+    private static ChatMode chatMode = ChatMode.PRIVATE_ONLY;
     /**
      * 私聊
      *
@@ -31,10 +31,29 @@ public class TebetMessage implements ListenerHost {
         //获取消息
         String message = event.getMessage().contentToString();
         try {
-            String replay = ChatGPTUtils.generateGPTText(message, ChatMode.PRIVATE_ONLY, event.getFriend().getId()).get();
-            String content = JsonPath.read(replay, "$.content");
+            if (message.equals("暴躁模式启动")){
+                chatMode = ChatMode.PRIVATE_ANGRY;
+                event.getFriend().sendMessage("暴躁模式启动成功");
+                return;
+            }
+            String replay = ChatGPTUtils.generateGPTText(message, chatMode, event.getFriend().getId()).get();
+            String content;
+            if (chatMode == ChatMode.PRIVATE_ANGRY){
+                content = JsonPath.read(replay, "$.developer");
+            }else {
+                content = JsonPath.read(replay, "$.content");
+            }
+            if (content.contains("[动画表情]")) {
+                content = "这是我的表情~";
+            }
+
             int feeling = JsonPath.read(replay, "$.feeling");
-            Feeling feelingEnum = Feeling.values()[feeling + 3];
+            Feeling feelingEnum = Feeling.getFeeling(feeling);
+
+            if (feelingEnum == null) {
+                throw new IllegalArgumentException();
+            }
+
             Image feelingImage = FeelingUtil.getFeelingImage(feelingEnum);
             MessageChain messageChain;
             if (feelingImage == null) {
@@ -46,17 +65,22 @@ public class TebetMessage implements ListenerHost {
                         .append(feelingEnum.getFeelingName())
                         .build();
             } else {
+                Image.Builder feelingImageBuilder = Image.Builder.newBuilder(feelingImage.getImageId());
+                feelingImageBuilder.setEmoji(true);
+                feelingImageBuilder.setSize(233);
+                feelingImageBuilder.setHeight(feelingImage.getHeight());
+                feelingImageBuilder.setWidth(feelingImage.getWidth());
+                feelingImageBuilder.setType(feelingImage.getImageType());
                 messageChain = new MessageChainBuilder()
                         .append(content)
                         .append("\n")
-                        .append("情绪：")
-                        .append(feelingEnum.getFeelingName())
+                        .append(feelingImageBuilder.build())
                         .append("\n")
-                        .append(feelingImage)
                         .build();
             }
+
             event.getFriend().sendMessage(messageChain);
-        } catch (ExecutionException | InterruptedException | PathNotFoundException e) {
+        } catch (ExecutionException | InterruptedException | PathNotFoundException | IllegalArgumentException e) {
             if (e instanceof PathNotFoundException) {
                 //删除所有特殊字符
                 String contentEscaped = message.replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
@@ -78,8 +102,8 @@ public class TebetMessage implements ListenerHost {
         String message = event.getMessage().contentToString();
         for (Message atMessage : event.getMessage()) {
             if (atMessage instanceof At) {
-                //判断是否是机器人被AT
                 At at = (At) atMessage;
+                //判断是否是机器人被AT
                 if (at.getTarget() == event.getBot().getId()) {
                     //获取引用消息
                     QuoteReply quoteReply = event.getMessage().contains(QuoteReply.Key) ? event.getMessage().get(QuoteReply.Key) : null;
@@ -101,7 +125,7 @@ public class TebetMessage implements ListenerHost {
                         event.getGroup().sendMessage(messageChain);
 
                     } catch (ExecutionException | InterruptedException e) {
-                        event.getGroup().sendMessage("很抱歉，Tebet出错了😟");
+                        event.getGroup().sendMessage("很抱歉，Tebet出错了");
                     }
                 }
             }

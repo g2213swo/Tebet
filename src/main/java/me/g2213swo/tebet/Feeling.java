@@ -12,22 +12,30 @@ public enum Feeling {
      * “1”代表开心，
      * “2”代表激动。
      */
-    ANGRY, //-3  0
+    ANGRY(-3), //-3  0
 
-    SAD, //-2  1
+    SAD(-2), //-2  1
 
-    BORED, //-1  2
+    BORED(-1), //-1  2
 
-    BALANCE, //0  3
+    BALANCE(0), //0  3
 
-    HAPPY, //1  4
+    HAPPY(1), //1  4
 
-    EXCITED; //2  5
+    EXCITED(2); //2  5
+    private final int feeling;
 
+    Feeling(int feeling){
+        this.feeling = feeling;
+    }
     public String getFeelingName() {
         return this.name().toLowerCase();
     }
 
-
-
+    public static Feeling getFeeling(int x) {
+        for (Feeling feeling : Feeling.values()){
+            if (x == feeling.feeling) return feeling;
+        }
+        return null;
+    }
 }

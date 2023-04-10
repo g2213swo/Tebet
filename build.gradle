@@ -1,3 +1,11 @@
+buildscript {
+    repositories {
+        // 设置 Gradle 构建脚本的镜像源
+        maven { url 'https://maven.aliyun.com/repository/public' } // 阿里云镜像源
+        // 其他镜像源配置
+    }
+}
+
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.5.10'
@@ -10,8 +18,11 @@ plugins {
 group 'me.g2213swo'
 version '0.1.0'
 
-repositories {
-    mavenCentral()
+allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
 }
 
 
@@ -24,4 +35,10 @@ dependencies {
     implementation 'redis.clients:jedis:4.3.1'
     implementation 'com.jayway.jsonpath:json-path:2.7.0'
     implementation 'net.mamoe:mirai-core-jvm:2.14.0'
+}
+
+tasks.compileJava {
+    // 使用 mavenCompilerSource 和 mavenCompilerTarget 属性
+    sourceCompatibility = 11
+    targetCompatibility = 11
 }
