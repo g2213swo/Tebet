@@ -1,6 +1,9 @@
 package me.g2213swo.minetebet;
 
+import me.g2213swo.minetebet.sender.ServerInfoSender;
+import me.g2213swo.minetebet.utils.JedisUtil;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class MineTebet extends JavaPlugin {
@@ -22,11 +25,16 @@ public class MineTebet extends JavaPlugin {
     public void onEnable() {
         // Plugin startup logic
         logger.info("MineTebet is enabled!");
+        if (!JedisUtil.isPoolEnabled()) {
+            JedisUtil.initializeRedis();
+        }
+        ServerInfoSender serverInfoSender = new ServerInfoSender();
+        Bukkit.getScheduler().runTaskAsynchronously(this, serverInfoSender::sendServerInfo);
     }
-
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        JedisUtil.closePool();
         logger.info("MineTebet is disabled!");
     }
 

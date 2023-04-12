@@ -2,16 +2,17 @@ package me.g2213swo.tebet.listener;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import me.g2213swo.tebet.model.ChatMode;
 import me.g2213swo.tebet.Feeling;
 import me.g2213swo.tebet.Tebet;
+import me.g2213swo.tebet.model.ChatUser;
 import me.g2213swo.tebet.utils.ChatGPTUtils;
 import me.g2213swo.tebet.utils.FeelingUtil;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
-import net.mamoe.mirai.event.events.GroupMessageEvent;
-import net.mamoe.mirai.message.data.*;
+import net.mamoe.mirai.message.data.Image;
+import net.mamoe.mirai.message.data.MessageChain;
+import net.mamoe.mirai.message.data.MessageChainBuilder;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.util.concurrent.ExecutionException;
@@ -20,7 +21,10 @@ public class TebetMessage implements ListenerHost {
 
 
     private static final MiraiLogger logger = Tebet.instance.getLogger();
-    private static ChatMode chatMode = ChatMode.PRIVATE_ONLY;
+
+    private static boolean isAngry = false;
+
+
     /**
      * 私聊
      *
@@ -30,21 +34,30 @@ public class TebetMessage implements ListenerHost {
     public void sendGPT(FriendMessageEvent event) {
         //获取消息
         String message = event.getMessage().contentToString();
+        //获取用户
+        ChatUser.ChatUserBuilder chatUserBuilder = new ChatUser.ChatUserBuilder();
+        chatUserBuilder
+                .setQQ(event.getFriend().getId())
+                .setMessage(message);
+        chatUserBuilder.setAngry(isAngry);
+        ChatUser chatUser = chatUserBuilder.build();
         try {
-            if (message.equals("暴躁模式启动")){
-                chatMode = ChatMode.PRIVATE_ANGRY;
+            if (message.equals("暴躁模式启动") && !isAngry) {
+                isAngry = true;
                 event.getFriend().sendMessage("暴躁模式启动成功");
                 return;
+            } else if (message.equals("暴躁模式关闭") && isAngry) {
+                isAngry = false;
+                event.getFriend().sendMessage("暴躁模式关闭成功");
+                return;
             }
-            String replay = ChatGPTUtils.generateGPTText(message, chatMode, event.getFriend().getId()).get();
+
+            String replay = ChatGPTUtils.generateGPTText(chatUser).get();
             String content;
-            if (chatMode == ChatMode.PRIVATE_ANGRY){
+            if (chatUser.isAngry()) {
                 content = JsonPath.read(replay, "$.developer");
-            }else {
+            } else {
                 content = JsonPath.read(replay, "$.content");
-            }
-            if (content.contains("[动画表情]")) {
-                content = "这是我的表情~";
             }
 
             int feeling = JsonPath.read(replay, "$.feeling");
@@ -97,38 +110,38 @@ public class TebetMessage implements ListenerHost {
 
 
     //群内被AT事件
-    @EventHandler
-    public void sendGPT(GroupMessageEvent event) {
-        String message = event.getMessage().contentToString();
-        for (Message atMessage : event.getMessage()) {
-            if (atMessage instanceof At) {
-                At at = (At) atMessage;
-                //判断是否是机器人被AT
-                if (at.getTarget() == event.getBot().getId()) {
-                    //获取引用消息
-                    QuoteReply quoteReply = event.getMessage().contains(QuoteReply.Key) ? event.getMessage().get(QuoteReply.Key) : null;
-                    try {
-                        String messageWithoutPrefix = message.replaceFirst("^@[1-9][0-9]{4,10}", "");
-                        String replay;
-                        if (quoteReply != null) {
-                            replay = ChatGPTUtils.generateGPTText("之前的话：" + quoteReply.getSource().getOriginalMessage() + "。" + messageWithoutPrefix,
-                                    ChatMode.GROUP_ONLY, event.getGroup().getId()).get();
-                        } else {
-                            replay = ChatGPTUtils.generateGPTText(messageWithoutPrefix,
-                                    ChatMode.GROUP_ONLY, event.getGroup().getId()).get();
-                        }
-                        MessageChain messageChain = new MessageChainBuilder()
-                                .append(new At(event.getSender().getId()))
-                                .append(" ")
-                                .append(replay)
-                                .build();
-                        event.getGroup().sendMessage(messageChain);
-
-                    } catch (ExecutionException | InterruptedException e) {
-                        event.getGroup().sendMessage("很抱歉，Tebet出错了");
-                    }
-                }
-            }
-        }
-    }
+//    @EventHandler
+//    public void sendGPT(GroupMessageEvent event) {
+//        String message = event.getMessage().contentToString();
+//        for (Message atMessage : event.getMessage()) {
+//            if (atMessage instanceof At) {
+//                At at = (At) atMessage;
+//                //判断是否是机器人被AT
+//                if (at.getTarget() == event.getBot().getId()) {
+//                    //获取引用消息
+//                    QuoteReply quoteReply = event.getMessage().contains(QuoteReply.Key) ? event.getMessage().get(QuoteReply.Key) : null;
+//                    try {
+//                        String messageWithoutPrefix = message.replaceFirst("^@[1-9][0-9]{4,10}", "");
+//                        String replay;
+//                        if (quoteReply != null) {
+//                            replay = ChatGPTUtils.generateGPTText("之前的话：" + quoteReply.getSource().getOriginalMessage() + "。" + messageWithoutPrefix,
+//                                    ChatMode.GROUP_ONLY, event.getGroup().getId()).get();
+//                        } else {
+//                            replay = ChatGPTUtils.generateGPTText(messageWithoutPrefix,
+//                                    ChatMode.GROUP_ONLY, event.getGroup().getId()).get();
+//                        }
+//                        MessageChain messageChain = new MessageChainBuilder()
+//                                .append(new At(event.getSender().getId()))
+//                                .append(" ")
+//                                .append(replay)
+//                                .build();
+//                        event.getGroup().sendMessage(messageChain);
+//
+//                    } catch (ExecutionException | InterruptedException e) {
+//                        event.getGroup().sendMessage("很抱歉，Tebet出错了");
+//                    }
+//                }
+//            }
+//        }
+//    }
 }

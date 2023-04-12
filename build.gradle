@@ -2,7 +2,6 @@ buildscript {
     repositories {
         // 设置 Gradle 构建脚本的镜像源
         maven { url 'https://maven.aliyun.com/repository/public' } // 阿里云镜像源
-        // 其他镜像源配置
     }
 }
 
@@ -12,23 +11,35 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization' version '1.5.10'
 
     id 'net.mamoe.mirai-console' version '2.14.0'
+    //shadow
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
 
+    id 'idea'
 }
 
 group 'me.g2213swo'
 version '0.1.0'
 
 allprojects {
+    apply plugin : 'java'
+    apply plugin: 'idea'
+    apply plugin: 'com.github.johnrengelman.shadow'
     repositories {
         mavenLocal()
         mavenCentral()
     }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+
 }
 
 
 task buildAll {
     dependsOn("buildPluginLegacy")
-    dependsOn(":MineTebet:build")
+    dependsOn(":MineTebet:clean")
+    dependsOn(":MineTebet:shadowJar")
 }
 
 dependencies {
