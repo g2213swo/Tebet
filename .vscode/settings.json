@@ -1,6 +1,0 @@
-{
-    "java.compile.nullAnalysis.mode": "automatic",
-    "editor.wordBasedSuggestions": false,
-    "aicursor.model": "gpt-3.5-turbo",
-    "aicursor.openaiApiKey": "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"
-}
