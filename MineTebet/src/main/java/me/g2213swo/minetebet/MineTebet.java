@@ -8,17 +8,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class MineTebet extends JavaPlugin {
 
-    public static MineTebet INSTANCE;
+    public static MineTebet instance;
 
     private final ComponentLogger logger = ComponentLogger.logger("MineTebet");
 
-    public static MineTebet getINSTANCE() {
-        return INSTANCE;
+    public static MineTebet getInstance() {
+        return instance;
     }
 
     @Override
     public void onLoad() {
-        INSTANCE = this;
+        instance = this;
     }
 
     @Override
@@ -29,7 +29,7 @@ public class MineTebet extends JavaPlugin {
             JedisUtil.initializeRedis();
         }
         ServerInfoSender serverInfoSender = new ServerInfoSender();
-        Bukkit.getScheduler().runTaskAsynchronously(this, serverInfoSender::sendServerInfo);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(instance, serverInfoSender::sendServerInfo, 0, 20);
     }
     @Override
     public void onDisable() {

@@ -46,6 +46,7 @@ public final class Tebet extends JavaPlugin {
             JedisUtil.initializeRedis();
             logger.info("Redis pool is enabled!");
         }
+
         GlobalEventChannel.INSTANCE.registerListenerHost(new TebetOnline());
         GlobalEventChannel.INSTANCE.registerListenerHost(new TebetMessage());
 

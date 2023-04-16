@@ -1,6 +1,7 @@
 package me.g2213swo.tebet.model;
 
 public enum ChatMode {
+
     GROUP_ONLY("group"),
     PRIVATE_ONLY("private");
 

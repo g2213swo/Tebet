@@ -1,23 +1,37 @@
 package me.g2213swo.tebet.receiver;
 
 import me.g2213swo.tebet.Tebet;
-import net.mamoe.mirai.Bot;
-import net.mamoe.mirai.utils.MiraiLogger;
+import me.g2213swo.tebet.receiver.info.ServerInfo;
+
+import java.util.concurrent.TimeUnit;
 
 public class ServerInfoReceiver extends ReceiverImpl{
     private final Tebet instance = Tebet.instance;
 
-    private final MiraiLogger logger = Tebet.instance.getLogger();
+    private static ServerInfo serverInfo;
+
     @Override
     public void receive() {
-        String serverInfo = jedis.get("server_info");
-        if (serverInfo != null) {
-            Bot TebetBot = instance.getTebetBot();
-            TebetBot.getFriend(2057581537).sendMessage(serverInfo);
-        }else {
-            Bot TebetBot = instance.getTebetBot();
-            TebetBot.getFriend(2057581537).sendMessage("没东西awa");
+        String serverInfoJson = jedis.get("server_info");
+        if (serverInfoJson != null) {
+            serverInfo = gson.fromJson(serverInfoJson, ServerInfo.class);
         }
     }
 
+    @Override
+    public TimeUnit getUnit() {
+        return TimeUnit.SECONDS;
+    }
+
+    @Override
+    public long getDelay() {
+        return 10;
+    }
+
+    public static ServerInfo getServerInfo() {
+        if (serverInfo == null) {
+            return null;
+        }
+        return serverInfo;
+    }
 }

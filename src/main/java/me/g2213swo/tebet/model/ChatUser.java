@@ -9,11 +9,14 @@ public class ChatUser {
 
     private final boolean isAngry;
 
-    private ChatUser(long qq, ChatMode chatMode, String message, boolean isAngry){
+    private final boolean isCodeExecute;
+
+    private ChatUser(long qq, ChatMode chatMode, String message, boolean isAngry, boolean isCodeExecute){
         this.qq = qq;
         this.chatMode = chatMode;
         this.message = message;
         this.isAngry = isAngry;
+        this.isCodeExecute = isCodeExecute;
     }
 
     public long getQQ() {
@@ -33,6 +36,11 @@ public class ChatUser {
         return isAngry;
     }
 
+    public boolean isCodeExecute() {
+        return isCodeExecute;
+    }
+
+
     @Override
     public String toString() {
         return "ChatUser{" +
@@ -50,6 +58,7 @@ public class ChatUser {
 
         private boolean isAngry = false;
 
+        private boolean isCodeExecute = false;
         public ChatUserBuilder setQQ(long qq){
             this.qq = qq;
             return this;
@@ -70,9 +79,14 @@ public class ChatUser {
             return this;
         }
 
+        public ChatUserBuilder setCodeExecute(boolean codeExecute) {
+            isCodeExecute = codeExecute;
+            return this;
+        }
+
 
         public ChatUser build(){
-            return new ChatUser(qq, chatMode, message, isAngry);
+            return new ChatUser(qq, chatMode, message, isAngry, isCodeExecute);
         }
     }
 }

@@ -16,3 +16,7 @@
 
 1. 能获取Minecraft服务器的服务器信息（在线人数，服务器版本，服务器IP等），并通过ChatGPT生成。
 2. 能获取Minecraft服务器的玩家信息（玩家名，玩家UUID，玩家等级，玩家经验等），并通过ChatGPT生成。
+
+
+## 构建
+`gradle buildAll`

@@ -11,7 +11,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization' version '1.5.10'
 
     id 'net.mamoe.mirai-console' version '2.14.0'
-    //shadow
+
     id 'com.github.johnrengelman.shadow' version '7.1.0'
 
     id 'idea'
@@ -44,8 +44,11 @@ task buildAll {
 
 dependencies {
     implementation 'redis.clients:jedis:4.3.1'
+    implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'com.jayway.jsonpath:json-path:2.7.0'
     implementation 'net.mamoe:mirai-core-jvm:2.14.0'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+
 }
 
 tasks.compileJava {

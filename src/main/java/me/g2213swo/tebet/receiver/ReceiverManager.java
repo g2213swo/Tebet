@@ -1,10 +1,10 @@
 package me.g2213swo.tebet.receiver;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class ReceiverManager {
-    private static final Timer timer = new Timer();
+    private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
 
 
     /**
@@ -12,11 +12,6 @@ public class ReceiverManager {
      * @param receiver 接收器
      */
     public static void startReceiver(Receiver receiver) {
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                receiver.receive();
-            }
-        }, 0, 1000 * 10);
+        EXECUTOR.schedule(receiver::receive, receiver.getDelay(), receiver.getUnit());
     }
 }
