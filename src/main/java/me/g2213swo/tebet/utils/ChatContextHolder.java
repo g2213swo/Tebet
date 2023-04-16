@@ -19,7 +19,7 @@ public final class ChatContextHolder {
 
         //初始化引导
         if (context == null) {
-            List<String> assistantInputs = ChatOption.getAssistantInputs(chatUser.isAngry());
+            List<String> assistantInputs = ChatOption.getAssistantInputs();
             context = new LRUCache.LRUChatSet(4 + assistantInputs.size());
             for (String string : assistantInputs) {
                 context.add(new ChatMessage(MessageRole.assistant, string));

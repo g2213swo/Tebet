@@ -7,15 +7,13 @@ public class ChatUser {
 
     private final String message;
 
-    private final boolean isAngry;
 
     private final boolean isCodeExecute;
 
-    private ChatUser(long qq, ChatMode chatMode, String message, boolean isAngry, boolean isCodeExecute){
+    private ChatUser(long qq, ChatMode chatMode, String message, boolean isCodeExecute){
         this.qq = qq;
         this.chatMode = chatMode;
         this.message = message;
-        this.isAngry = isAngry;
         this.isCodeExecute = isCodeExecute;
     }
 
@@ -32,9 +30,6 @@ public class ChatUser {
         return message;
     }
 
-    public boolean isAngry() {
-        return isAngry;
-    }
 
     public boolean isCodeExecute() {
         return isCodeExecute;
@@ -47,7 +42,6 @@ public class ChatUser {
                 "qq=" + qq +
                 ", chatMode=" + chatMode +
                 ", message='" + message + '\'' +
-                ", isAngry=" + isAngry +
                 '}';
     }
 
@@ -56,7 +50,6 @@ public class ChatUser {
         private ChatMode chatMode = ChatMode.PRIVATE_ONLY;
         private String message = "";
 
-        private boolean isAngry = false;
 
         private boolean isCodeExecute = false;
         public ChatUserBuilder setQQ(long qq){
@@ -74,11 +67,6 @@ public class ChatUser {
             return this;
         }
 
-        public ChatUserBuilder setAngry(boolean angry) {
-            isAngry = angry;
-            return this;
-        }
-
         public ChatUserBuilder setCodeExecute(boolean codeExecute) {
             isCodeExecute = codeExecute;
             return this;
@@ -86,7 +74,7 @@ public class ChatUser {
 
 
         public ChatUser build(){
-            return new ChatUser(qq, chatMode, message, isAngry, isCodeExecute);
+            return new ChatUser(qq, chatMode, message, isCodeExecute);
         }
     }
 }

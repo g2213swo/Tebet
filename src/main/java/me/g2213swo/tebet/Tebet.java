@@ -18,7 +18,6 @@ public final class Tebet extends JavaPlugin {
 
     public static Tebet instance;
 
-
     private final MiraiLogger logger = getLogger();
 
 
@@ -54,9 +53,7 @@ public final class Tebet extends JavaPlugin {
 
 
         getLogger().info("Tebet is enabled!");
-
     }
-
 
 
     @Override
