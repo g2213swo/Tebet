@@ -16,10 +16,9 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Tebet extends JavaPlugin {
 
-    public static Tebet instance;
+    public static final Tebet INSTANCE = new Tebet();
 
     private final MiraiLogger logger = getLogger();
-
 
     public Bot getTebetBot() {
         return Bot.Companion.findInstance(1038796824);
@@ -32,7 +31,6 @@ public final class Tebet extends JavaPlugin {
                 .build());
     }
 
-
     @Override
     public void onLoad(@NotNull PluginComponentStorage $this$onLoad) {
         reloadPlugin();
@@ -40,7 +38,6 @@ public final class Tebet extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        instance = this;
         if (!JedisUtil.isPoolEnabled()) {
             JedisUtil.initializeRedis();
             logger.info("Redis pool is enabled!");

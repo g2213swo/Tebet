@@ -48,6 +48,7 @@ dependencies {
     implementation 'com.jayway.jsonpath:json-path:2.7.0'
     implementation 'net.mamoe:mirai-core-jvm:2.14.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'com.github.oshi:oshi-core:6.4.1'
 
 }
 

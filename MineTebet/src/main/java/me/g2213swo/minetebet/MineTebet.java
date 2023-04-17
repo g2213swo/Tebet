@@ -8,7 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class MineTebet extends JavaPlugin {
 
-    public static MineTebet instance;
+    private static MineTebet instance;
 
     private final ComponentLogger logger = ComponentLogger.logger("MineTebet");
 
@@ -28,8 +28,7 @@ public class MineTebet extends JavaPlugin {
         if (!JedisUtil.isPoolEnabled()) {
             JedisUtil.initializeRedis();
         }
-        ServerInfoSender serverInfoSender = new ServerInfoSender();
-        Bukkit.getScheduler().runTaskTimerAsynchronously(instance, serverInfoSender::sendServerInfo, 0, 20);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(instance, ServerInfoSender::sendServerInfo, 0, 20);
     }
     @Override
     public void onDisable() {

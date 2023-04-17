@@ -1,64 +1,65 @@
 package me.g2213swo.minetebet.info;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import org.bukkit.Bukkit;
+import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.GlobalMemory;
+import oshi.util.Util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.text.DecimalFormat;
 
 public class ServerInfo {
 
     private final String cpu;
-
     private final double cpuUsage;
-    private final ComponentLogger logger = ComponentLogger.logger("MineTebet");
+
+    private final double memoryUsage;
+
+    private final double tps;
+
+    private static final ComponentLogger LOGGER = ComponentLogger.logger("MineTebet");
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
     public ServerInfo() {
-        this.cpu = getCpu();
-        this.cpuUsage = getCpuUsage();
+        SystemInfo systemInfo = new SystemInfo();
+        CentralProcessor processor = systemInfo.getHardware().getProcessor();
+        GlobalMemory memory = systemInfo.getHardware().getMemory();
+        this.cpu = processor.getProcessorIdentifier().getName();
+        this.cpuUsage = getCpuUsage(processor);
+        this.memoryUsage = getMemoryUsage(memory);
+        this.tps = getServerTps();
     }
 
-    private double getCpuUsage() {
-        try {
-            // 执行命令获取 CPU 信息
-            Process process = Runtime.getRuntime().exec("wmic cpu get loadpercentage");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    if (line.contains("LoadPercentage")) {
-                        continue;
-                    }
-                    return Double.parseDouble(line.trim());
-                }
-            }
-        } catch (IOException e) {
-            logger.error("获取 CPU 使用率失败");
-            e.printStackTrace();
+    private static double getCpuUsage(CentralProcessor processor) {
+        double systemCpuLoad = processor.getSystemCpuLoad(1000);
+        double cpuUsage = systemCpuLoad * 100;
+        Util.sleep(1000); // Wait for 1 second
+        if (cpuUsage < 0) {
+            LOGGER.error("获取 CPU 使用率失败");
+            return 0;
         }
-        return 0;
+        String formatCpuUsage = DECIMAL_FORMAT.format(cpuUsage);
+        LOGGER.info(Component.text("CPU 使用率: " + formatCpuUsage).color(TextColor.color(0xe0e1)));
+        return Double.parseDouble(formatCpuUsage);
     }
 
+    private double getMemoryUsage(GlobalMemory memory) {
+        long totalMemory = memory.getTotal();
+        long availableMemory = memory.getAvailable();
+        long usedMemory = totalMemory - availableMemory;
+        double memoryUsage = (double) usedMemory / totalMemory * 100;
+        String formatMemoryUsage = DECIMAL_FORMAT.format(memoryUsage);
+        LOGGER.info(Component.text("内存使用率: " + formatMemoryUsage).color(TextColor.color(0xe0e1)));
+        return Double.parseDouble(formatMemoryUsage);
+    }
 
-    //获取CPU
-    public String getCpu() {
-        try {
-            // 执行命令获取 CPU 信息
-            Process process = Runtime.getRuntime().exec("wmic cpu get name");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    if (line.contains("Name")) {
-                        continue;
-                    }
-                    return line.trim();
-                }
-            }
-        } catch (IOException e) {
-            logger.error("获取 CPU 型号失败");
-            e.printStackTrace();
-        }
-        return null;
+    private double getServerTps() {
+        double[] tps = Bukkit.getTPS();
+        String formatTPS = DECIMAL_FORMAT.format(tps[0]);
+        LOGGER.info(Component.text("Server TPS: " + formatTPS).color(TextColor.color(0xe0e1)));
+        return Double.parseDouble(formatTPS);
     }
 }

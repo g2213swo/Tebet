@@ -9,6 +9,6 @@ public interface Receiver {
 
     TimeUnit getUnit();
 
-    long getDelay();
+    long getPeriod();
 
 }

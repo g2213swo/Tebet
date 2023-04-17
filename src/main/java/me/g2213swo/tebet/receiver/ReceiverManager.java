@@ -4,7 +4,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class ReceiverManager {
-    private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService EXECUTOR =
+            Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
 
 
     /**
@@ -12,6 +13,6 @@ public class ReceiverManager {
      * @param receiver 接收器
      */
     public static void startReceiver(Receiver receiver) {
-        EXECUTOR.schedule(receiver::receive, receiver.getDelay(), receiver.getUnit());
+        EXECUTOR.scheduleAtFixedRate(receiver::receive, 0, receiver.getPeriod(), receiver.getUnit());
     }
 }

@@ -15,6 +15,7 @@ repositories {
 dependencies {
     implementation 'redis.clients:jedis:4.3.1'
     implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.github.oshi:oshi-core:6.4.1'
 
     compileOnly 'io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT'
 }

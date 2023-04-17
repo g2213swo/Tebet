@@ -10,16 +10,16 @@ import net.mamoe.mirai.event.events.BotOnlineEvent;
 
 public class TebetOnline implements ListenerHost {
 
-    private final Tebet instance = Tebet.instance;
+    private final Tebet instance = Tebet.INSTANCE;
 
-
+    public static final ServerInfoReceiver serverInfoReceiver = new ServerInfoReceiver();
     @EventHandler
     public void onOnline(BotOnlineEvent event) {
         Bot bot = event.getBot();
         if (bot.getId() == 1038796824)
         {
-            bot.getFriend(2057581537).sendMessage("我上线了");
-            ReceiverManager.startReceiver(new ServerInfoReceiver());
+//            bot.getFriend(2057581537).sendMessage("我上线了");
+            ReceiverManager.startReceiver(serverInfoReceiver);
         }
     }
 }

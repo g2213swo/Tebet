@@ -17,10 +17,10 @@ public class FeelingUtil {
 
     public static final FeelingUtil INSTANCE = new FeelingUtil();
 
-    private static final Path PATH = Tebet.instance.getConfigFolderPath();
-    private final Contact contact = Tebet.instance.getTebetBot().getAsFriend();
+    private static final Path PATH = Tebet.INSTANCE.getConfigFolderPath();
+    private final Contact contact = Tebet.INSTANCE.getTebetBot().getAsFriend();
 
-    private static final MiraiLogger logger = Tebet.instance.getLogger();
+    private static final MiraiLogger logger = Tebet.INSTANCE.getLogger();
 
     private static final List<File> imageFiles = new ArrayList<>();
 

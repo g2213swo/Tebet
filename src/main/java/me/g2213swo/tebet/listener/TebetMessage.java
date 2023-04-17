@@ -7,9 +7,9 @@ import me.g2213swo.tebet.Tebet;
 import me.g2213swo.tebet.exception.SpamException;
 import me.g2213swo.tebet.integration.ChatApiClientImpl;
 import me.g2213swo.tebet.model.ChatMessage;
-import me.g2213swo.tebet.model.ChatOption;
 import me.g2213swo.tebet.model.ChatUser;
 import me.g2213swo.tebet.model.MessageRole;
+import me.g2213swo.tebet.receiver.ServerInfoReceiver;
 import me.g2213swo.tebet.utils.ChatContextHolder;
 import me.g2213swo.tebet.utils.FeelingUtil;
 import me.g2213swo.tebet.utils.RequestDebouncer;
@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 
 public class TebetMessage implements ListenerHost {
 
-    private static final MiraiLogger logger = Tebet.instance.getLogger();
+    private static final MiraiLogger logger = Tebet.INSTANCE.getLogger();
 
 
     private final ChatApiClientImpl chatApiClient = new ChatApiClientImpl();
@@ -42,11 +42,10 @@ public class TebetMessage implements ListenerHost {
         //获取消息
         String message = event.getMessage().contentToString();
         //获取用户
-        ChatUser.ChatUserBuilder chatUserBuilder = new ChatUser.ChatUserBuilder();
-        chatUserBuilder
+        ChatUser chatUser = new ChatUser.ChatUserBuilder()
                 .setQQ(event.getFriend().getId())
-                .setMessage(message);
-        ChatUser chatUser = chatUserBuilder.build();
+                .setMessage(message)
+                .build();
         handleGPTMessage(chatUser, messageChain -> event.getFriend().sendMessage(messageChain));
     }
 
@@ -77,21 +76,46 @@ public class TebetMessage implements ListenerHost {
         }
     }
 
+    /**
+     * 处理消息
+     *
+     * @param chatUser    用户
+     * @param sendMessage 发送消息
+     */
     private void handleGPTMessage(ChatUser chatUser, Consumer<MessageChain> sendMessage) {
-        // 将原来的相似代码部分移动到这里
         try {
             //请求防抖
             if (!debouncer.shouldAllowRequest(chatUser.getQQ())) {
                 throw new SpamException(chatUser.getQQ() + "请求过多！");
             }
-
             //保存消息
             ChatContextHolder.saveChatMessage(chatUser, new ChatMessage(MessageRole.user, chatUser.getMessage()));
 
             //获取上下文
             List<ChatMessage> chatContext = ChatContextHolder.getChatContext(chatUser);
 
-            chatContext.add(0, new ChatMessage(MessageRole.system, ChatOption.getSystemInput()));
+            chatContext.add(0, new ChatMessage(MessageRole.system, chatUser.getChatOption().getSystemInput()));
+            //处理服务器信息
+            ServerInfoReceiver.ServerInfo serverInfo = chatUser.getServerInfo();
+            System.out.println(serverInfo);
+            if (serverInfo != null) {
+                String serverInfoStr = serverInfo.toString();
+                boolean serverInfoExists = false;
+                for (ChatMessage message : chatContext) {
+                    if (message.getRole() == MessageRole.assistant && message.getContent().startsWith("Server CPU")) {
+                        message.setContent(serverInfoStr);
+                        serverInfoExists = true;
+                        break;
+                    }
+                }
+                if (!serverInfoExists) {
+                    chatContext.add(1, new ChatMessage(MessageRole.assistant, serverInfoStr));
+                }
+            }else {
+                logger.warning("ServerInfo is null");
+                String serverInfoStr = "Server is offline";
+                chatContext.add(1, new ChatMessage(MessageRole.assistant, serverInfoStr));
+            }
 
             ChatApiClientImpl.ChatResponse gptResponse = chatApiClient.chat(chatUser.getQQ(), chatContext, null);
             String replay = gptResponse.getMessage().getContent();
@@ -147,22 +171,31 @@ public class TebetMessage implements ListenerHost {
             }
         } catch (PathNotFoundException |
                  IllegalArgumentException | SpamException e) {
-            if (e instanceof PathNotFoundException) {
-                //删除所有特殊字符
-                String contentEscaped = chatUser.getMessage().replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
-                if (contentEscaped.length() == 0) {
-                    sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
-                    debouncer.onRequestFinished(chatUser.getQQ());
-                } else {
-                    sendMessage.accept(new MessageChainBuilder().append(contentEscaped).build());
-                    debouncer.onRequestFinished(chatUser.getQQ());
-                }
-            } else if (e instanceof SpamException) {
-                sendMessage.accept(new MessageChainBuilder().append("我还在思考QWQ").build());
-            } else {
+            handleException(e, chatUser, sendMessage);
+            debouncer.onRequestFinished(chatUser.getQQ());
+        }
+    }
+
+    /**
+     * 处理异常
+     *
+     * @param e           异常
+     * @param chatUser    用户
+     * @param sendMessage 发送消息
+     */
+    private void handleException(Exception e, ChatUser chatUser, Consumer<MessageChain> sendMessage) {
+        if (e instanceof PathNotFoundException) {
+            // 删除所有特殊字符
+            String contentEscaped = chatUser.getMessage().replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
+            if (contentEscaped.length() == 0) {
                 sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
-                debouncer.onRequestFinished(chatUser.getQQ());
+            } else {
+                sendMessage.accept(new MessageChainBuilder().append(contentEscaped).build());
             }
+        } else if (e instanceof SpamException) {
+            sendMessage.accept(new MessageChainBuilder().append("我还在思考QWQ").build());
+        } else {
+            sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
         }
     }
 }

@@ -1,20 +1,19 @@
 package me.g2213swo.tebet.receiver;
 
-import me.g2213swo.tebet.Tebet;
-import me.g2213swo.tebet.receiver.info.ServerInfo;
-
 import java.util.concurrent.TimeUnit;
 
-public class ServerInfoReceiver extends ReceiverImpl{
-    private final Tebet instance = Tebet.instance;
-
-    private static ServerInfo serverInfo;
+public class ServerInfoReceiver extends ReceiverImpl {
+    private ServerInfo serverInfo;
 
     @Override
     public void receive() {
-        String serverInfoJson = jedis.get("server_info");
-        if (serverInfoJson != null) {
-            serverInfo = gson.fromJson(serverInfoJson, ServerInfo.class);
+        try {
+            String serverInfoJson = jedis.get("server_info");
+            if (serverInfoJson != null) {
+                serverInfo = gson.fromJson(serverInfoJson, ServerInfo.class);
+            }
+        } catch (Exception e) {
+            logger.error("Error while receiving server info", e);
         }
     }
 
@@ -24,14 +23,50 @@ public class ServerInfoReceiver extends ReceiverImpl{
     }
 
     @Override
-    public long getDelay() {
-        return 10;
+    public long getPeriod() {
+        return 3;
     }
 
-    public static ServerInfo getServerInfo() {
+    public ServerInfo getServerInfo() {
         if (serverInfo == null) {
             return null;
         }
         return serverInfo;
+    }
+
+    public static class ServerInfo {
+        private String cpu;
+
+        private double cpuUsage;
+
+        private double memoryUsage;
+
+        private double tps;
+
+        private ServerInfo(){}
+
+        public String getCpu() {
+            return cpu;
+        }
+
+        public double getCpuUsage() {
+            return cpuUsage;
+        }
+
+        public double getMemoryUsage() {
+            return memoryUsage;
+        }
+
+        public double getTps() {
+            return tps;
+        }
+
+        @Override
+        public String toString() {
+            return "Server CPU: " + cpu +
+                    ", CPU usage: " + cpuUsage + "%" +
+                    ", Memory usage: " + memoryUsage + "%" +
+                    ", TPS: " + tps;
+        }
     }
 }

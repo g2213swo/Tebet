@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface ChatApiClient {
     Gson gson = new Gson();
-    MiraiLogger logger = Tebet.instance.getLogger();
+    MiraiLogger logger = Tebet.INSTANCE.getLogger();
     @NotNull
     ChatApiClientImpl.ChatResponse chat(long chatId, List<ChatMessage> chatContext, ChatOption options);
 }
