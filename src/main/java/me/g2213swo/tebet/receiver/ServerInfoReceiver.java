@@ -3,7 +3,7 @@ package me.g2213swo.tebet.receiver;
 import java.util.concurrent.TimeUnit;
 
 public class ServerInfoReceiver extends ReceiverImpl {
-    private ServerInfo serverInfo;
+    private static ServerInfo serverInfo;
 
     @Override
     public void receive() {
@@ -11,6 +11,8 @@ public class ServerInfoReceiver extends ReceiverImpl {
             String serverInfoJson = jedis.get("server_info");
             if (serverInfoJson != null) {
                 serverInfo = gson.fromJson(serverInfoJson, ServerInfo.class);
+            }else {
+                serverInfo = null;
             }
         } catch (Exception e) {
             logger.error("Error while receiving server info", e);
@@ -27,7 +29,7 @@ public class ServerInfoReceiver extends ReceiverImpl {
         return 3;
     }
 
-    public ServerInfo getServerInfo() {
+    public static ServerInfo getServerInfo() {
         if (serverInfo == null) {
             return null;
         }
@@ -44,22 +46,6 @@ public class ServerInfoReceiver extends ReceiverImpl {
         private double tps;
 
         private ServerInfo(){}
-
-        public String getCpu() {
-            return cpu;
-        }
-
-        public double getCpuUsage() {
-            return cpuUsage;
-        }
-
-        public double getMemoryUsage() {
-            return memoryUsage;
-        }
-
-        public double getTps() {
-            return tps;
-        }
 
         @Override
         public String toString() {

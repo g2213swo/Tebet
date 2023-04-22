@@ -12,10 +12,10 @@ public class TebetOnline implements ListenerHost {
 
     private final Tebet instance = Tebet.INSTANCE;
 
-    public static final ServerInfoReceiver serverInfoReceiver = new ServerInfoReceiver();
     @EventHandler
     public void onOnline(BotOnlineEvent event) {
         Bot bot = event.getBot();
+        ServerInfoReceiver serverInfoReceiver = new ServerInfoReceiver();
         if (bot.getId() == 1038796824)
         {
 //            bot.getFriend(2057581537).sendMessage("我上线了");

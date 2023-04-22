@@ -12,6 +12,6 @@ public final class ServerInfoSender {
 
     public static void sendServerInfo() {
         String serverInfoJson = gson.toJson(new ServerInfo());
-        jedis.setex("server_info", 20, serverInfoJson);
+        jedis.setex("server_info", 3, serverInfoJson);
     }
 }

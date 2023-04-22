@@ -1,5 +1,9 @@
 package me.g2213swo.tebet.listener;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import me.g2213swo.tebet.Feeling;
@@ -9,7 +13,6 @@ import me.g2213swo.tebet.integration.ChatApiClientImpl;
 import me.g2213swo.tebet.model.ChatMessage;
 import me.g2213swo.tebet.model.ChatUser;
 import me.g2213swo.tebet.model.MessageRole;
-import me.g2213swo.tebet.receiver.ServerInfoReceiver;
 import me.g2213swo.tebet.utils.ChatContextHolder;
 import me.g2213swo.tebet.utils.FeelingUtil;
 import me.g2213swo.tebet.utils.RequestDebouncer;
@@ -27,10 +30,26 @@ public class TebetMessage implements ListenerHost {
 
     private static final MiraiLogger logger = Tebet.INSTANCE.getLogger();
 
-
     private final ChatApiClientImpl chatApiClient = new ChatApiClientImpl();
 
     private final RequestDebouncer debouncer = new RequestDebouncer();
+
+    public static boolean isAngry = false;
+
+    private final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(ChatUser.class, (JsonSerializer<ChatUser>) (src, typeOfSrc, context) -> {
+                JsonObject jsonObject = new JsonObject();
+                jsonObject.addProperty("message", src.getMessage());
+                jsonObject.addProperty("serverInfoStr", src.getServerInfoStr());
+
+                if (src.shouldSendAngryStrOnce()) {
+                    jsonObject.addProperty("angryStr", src.getAngryStr());
+                    src.setSendAngryStrOnce(false);
+                }
+
+                return jsonObject;
+            })
+            .create();
 
     /**
      * 私聊
@@ -42,10 +61,10 @@ public class TebetMessage implements ListenerHost {
         //获取消息
         String message = event.getMessage().contentToString();
         //获取用户
-        ChatUser chatUser = new ChatUser.ChatUserBuilder()
-                .setQQ(event.getFriend().getId())
-                .setMessage(message)
-                .build();
+        ChatUser chatUser = new ChatUser();
+        chatUser.setQQ(event.getFriend().getId());
+        chatUser.setMessage(message);
+
         handleGPTMessage(chatUser, messageChain -> event.getFriend().sendMessage(messageChain));
     }
 
@@ -64,11 +83,9 @@ public class TebetMessage implements ListenerHost {
                     String messageWithoutPrefix = message.replaceFirst("^@[1-9][0-9]{4,10}", "");
                     //获取用户
                     At atChatUser = new At(event.getSender().getId());
-                    ChatUser.ChatUserBuilder chatUserBuilder = new ChatUser.ChatUserBuilder();
-                    chatUserBuilder
-                            .setQQ(event.getSender().getId())
-                            .setMessage(messageWithoutPrefix);
-                    ChatUser chatUser = chatUserBuilder.build();
+                    ChatUser chatUser = new ChatUser();
+                    chatUser.setQQ(event.getSender().getId());
+                    chatUser.setMessage(messageWithoutPrefix);
 
                     handleGPTMessage(chatUser, messageChain -> event.getGroup().sendMessage(atChatUser.plus(messageChain)));
                 }
@@ -76,46 +93,48 @@ public class TebetMessage implements ListenerHost {
         }
     }
 
-    /**
-     * 处理消息
-     *
-     * @param chatUser    用户
-     * @param sendMessage 发送消息
-     */
     private void handleGPTMessage(ChatUser chatUser, Consumer<MessageChain> sendMessage) {
         try {
             //请求防抖
             if (!debouncer.shouldAllowRequest(chatUser.getQQ())) {
                 throw new SpamException(chatUser.getQQ() + "请求过多！");
             }
+
+            //启动暴躁模式
+            if (chatUser.getMessage().equals("暴躁模式启动") && !isAngry) {
+                isAngry = true;
+                chatUser.setSendAngryStrOnce(true);
+                sendMessage.accept(new MessageChainBuilder().append("暴躁模式启动成功").build());
+
+                //清空上下文
+                ChatContextHolder.clearChatContext(chatUser);
+                String chatUserJson = gson.toJson(chatUser);
+                ChatContextHolder.saveChatMessage(chatUser, new ChatMessage(MessageRole.user, chatUserJson), true);
+                debouncer.onRequestFinished(chatUser.getQQ());
+                return;
+            }
+
+            //关闭暴躁模式
+            if (chatUser.getMessage().equals("暴躁模式关闭") && isAngry) {
+                isAngry = false;
+                sendMessage.accept(new MessageChainBuilder().append("暴躁模式关闭成功").build());
+
+                //清空上下文
+                ChatContextHolder.clearChatContext(chatUser);
+                debouncer.onRequestFinished(chatUser.getQQ());
+                return;
+            }
+
+            String chatUserJson = gson.toJson(chatUser);
+
+
             //保存消息
-            ChatContextHolder.saveChatMessage(chatUser, new ChatMessage(MessageRole.user, chatUser.getMessage()));
+            ChatContextHolder.saveChatMessage(chatUser, new ChatMessage(MessageRole.user, chatUserJson));
 
             //获取上下文
             List<ChatMessage> chatContext = ChatContextHolder.getChatContext(chatUser);
 
             chatContext.add(0, new ChatMessage(MessageRole.system, chatUser.getChatOption().getSystemInput()));
-            //处理服务器信息
-            ServerInfoReceiver.ServerInfo serverInfo = chatUser.getServerInfo();
-            System.out.println(serverInfo);
-            if (serverInfo != null) {
-                String serverInfoStr = serverInfo.toString();
-                boolean serverInfoExists = false;
-                for (ChatMessage message : chatContext) {
-                    if (message.getRole() == MessageRole.assistant && message.getContent().startsWith("Server CPU")) {
-                        message.setContent(serverInfoStr);
-                        serverInfoExists = true;
-                        break;
-                    }
-                }
-                if (!serverInfoExists) {
-                    chatContext.add(1, new ChatMessage(MessageRole.assistant, serverInfoStr));
-                }
-            }else {
-                logger.warning("ServerInfo is null");
-                String serverInfoStr = "Server is offline";
-                chatContext.add(1, new ChatMessage(MessageRole.assistant, serverInfoStr));
-            }
 
             ChatApiClientImpl.ChatResponse gptResponse = chatApiClient.chat(chatUser.getQQ(), chatContext, null);
             String replay = gptResponse.getMessage().getContent();
@@ -130,7 +149,11 @@ public class TebetMessage implements ListenerHost {
                 // 4. send message
                 String content;
 
-                content = JsonPath.read(replay, "$.content");
+                if (isAngry) {
+                    content = JsonPath.read(replay, "$.developer");
+                } else {
+                    content = JsonPath.read(replay, "$.content");
+                }
 
                 int feeling = JsonPath.read(replay, "$.feeling");
                 Feeling feelingEnum = Feeling.getFeeling(feeling);
@@ -167,6 +190,7 @@ public class TebetMessage implements ListenerHost {
                 debouncer.onRequestFinished(chatUser.getQQ());
             } else {
                 logger.warning("message type not support");
+                sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
                 debouncer.onRequestFinished(chatUser.getQQ());
             }
         } catch (PathNotFoundException |
@@ -198,4 +222,6 @@ public class TebetMessage implements ListenerHost {
             sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
         }
     }
+
 }
+

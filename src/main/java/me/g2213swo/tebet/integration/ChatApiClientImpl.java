@@ -26,7 +26,7 @@ public class ChatApiClientImpl implements ChatApiClient {
          * Higher values like 0.8 will make the output more random,
          * while lower values like 0.2 will make it more focused and deterministic.
          */
-        private double temperature = 0.8;
+        private double temperature = 1.0;
 
         private String user;
 
