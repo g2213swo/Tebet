@@ -16,6 +16,7 @@ public class TebetCommand extends JRawCommand {
         setPrefixOptional(false); // 设置指令前缀是可选的，即使用 `tebet` 也能执行指令而不需要 `tebet`
     }
 
+
     @Override
     public void onCommand(@NotNull CommandSender sender, @NotNull MessageChain args) {
         //处理指令

@@ -27,7 +27,7 @@ public class ChatOption {
                 "16. Plugins: CMI, NereusOpus, GriefDefender.\n" +
                 "17. Violations: Answer with \"Not allowed\" and reason.\n" +
                 "18. Unanswerable questions: Ask other admins.\n" +
-                "19. Player reply format: {\"message\":\"(user message)\",\"serverInfoStr\":\"(server information, typically unnecessary, only provide when asked by players)\"}.\n" +
+                "19. Player reply format: {\"message\":\"(user message)\"}.\n" +
                 "20. Use Kao-moji (emoticons) like '=￣ω￣=' in responses to express emotions.";
     }
 
@@ -35,8 +35,7 @@ public class ChatOption {
         String chatUserJson = gson.toJson(chatUser);
         if (TebetMessage.isAngry) {
             return List.of(chatUserJson,
-                    "{\"content\": \"你好，有什么我可以帮助你的吗？\", " +
-                            "\"developer\": \"你好，别以为你他妈能在服务器过得很舒服！\", " +
+                    "{\"content\": \"你好，别以为你能在服务器里过得很舒服！\", " +
                             "\"feeling\": 1}");
         }
         return List.of(chatUserJson,

@@ -11,7 +11,7 @@ public class ServerInfoReceiver extends ReceiverImpl {
             String serverInfoJson = jedis.get("server_info");
             if (serverInfoJson != null) {
                 serverInfo = gson.fromJson(serverInfoJson, ServerInfo.class);
-            }else {
+            } else {
                 serverInfo = null;
             }
         } catch (Exception e) {
@@ -30,9 +30,6 @@ public class ServerInfoReceiver extends ReceiverImpl {
     }
 
     public static ServerInfo getServerInfo() {
-        if (serverInfo == null) {
-            return null;
-        }
         return serverInfo;
     }
 
@@ -45,14 +42,12 @@ public class ServerInfoReceiver extends ReceiverImpl {
 
         private double tps;
 
-        private ServerInfo(){}
+        private ServerInfo() {
+        }
 
         @Override
         public String toString() {
-            return "Server CPU: " + cpu +
-                    ", CPU usage: " + cpuUsage + "%" +
-                    ", Memory usage: " + memoryUsage + "%" +
-                    ", TPS: " + tps;
+            return "Server CPU: " + cpu + ", CPU usage: " + cpuUsage + "%" + ", Memory usage: " + memoryUsage + "%" + ", TPS: " + tps;
         }
     }
 }

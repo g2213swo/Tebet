@@ -1,6 +1,0 @@
-public class TestChat {
-    public static void main(String[] args) {
-
-
-    }
-}
