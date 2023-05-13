@@ -2,6 +2,7 @@ buildscript {
     repositories {
         // 设置 Gradle 构建脚本的镜像源
         maven { url 'https://maven.aliyun.com/repository/public' } // 阿里云镜像源
+        mavenCentral()
     }
 }
 
@@ -21,7 +22,7 @@ group 'me.g2213swo'
 version '0.1.0'
 
 allprojects {
-    apply plugin : 'java'
+    apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'com.github.johnrengelman.shadow'
     repositories {
@@ -32,7 +33,6 @@ allprojects {
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
-
 }
 
 
@@ -49,7 +49,6 @@ dependencies {
     implementation 'net.mamoe:mirai-core-jvm:2.14.0'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     implementation 'com.github.oshi:oshi-core:6.4.1'
-
 }
 
 tasks.compileJava {

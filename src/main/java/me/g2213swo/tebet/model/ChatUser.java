@@ -2,6 +2,7 @@ package me.g2213swo.tebet.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatUser {
     private final transient long qq;
@@ -67,7 +68,7 @@ public class ChatUser {
         private final Map<Long, ChatUser> chatUsers;
 
         private Factory() {
-            chatUsers = new HashMap<>();
+            chatUsers = new ConcurrentHashMap<>();
         }
 
         public static Factory getInstance() {

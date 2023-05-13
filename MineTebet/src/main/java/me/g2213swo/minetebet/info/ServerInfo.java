@@ -1,7 +1,6 @@
 package me.g2213swo.minetebet.info;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
+import me.g2213swo.minetebet.MineTebet;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import oshi.SystemInfo;
@@ -20,7 +19,7 @@ public class ServerInfo {
 
     private final double tps;
 
-    private static final ComponentLogger LOGGER = ComponentLogger.logger("MineTebet");
+    private static final ComponentLogger LOGGER = MineTebet.getInstance().logger;
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
 
     public ServerInfo() {
@@ -42,7 +41,7 @@ public class ServerInfo {
             return 0;
         }
         String formatCpuUsage = DECIMAL_FORMAT.format(cpuUsage);
-        LOGGER.info(Component.text("CPU 使用率: " + formatCpuUsage).color(TextColor.color(0xe0e1)));
+//        LOGGER.info(Component.text("CPU 使用率: " + formatCpuUsage).color(TextColor.color(0xe0e1)));
         return Double.parseDouble(formatCpuUsage);
     }
 
@@ -52,14 +51,14 @@ public class ServerInfo {
         long usedMemory = totalMemory - availableMemory;
         double memoryUsage = (double) usedMemory / totalMemory * 100;
         String formatMemoryUsage = DECIMAL_FORMAT.format(memoryUsage);
-        LOGGER.info(Component.text("内存使用率: " + formatMemoryUsage).color(TextColor.color(0xe0e1)));
+//        LOGGER.info(Component.text("内存使用率: " + formatMemoryUsage).color(TextColor.color(0xe0e1)));
         return Double.parseDouble(formatMemoryUsage);
     }
 
     private double getServerTps() {
         double[] tps = Bukkit.getTPS();
         String formatTPS = DECIMAL_FORMAT.format(tps[0]);
-        LOGGER.info(Component.text("Server TPS: " + formatTPS).color(TextColor.color(0xe0e1)));
+//        LOGGER.info(Component.text("Server TPS: " + formatTPS).color(TextColor.color(0xe0e1)));
         return Double.parseDouble(formatTPS);
     }
 }

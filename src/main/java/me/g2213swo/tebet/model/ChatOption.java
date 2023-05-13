@@ -43,6 +43,6 @@ public class ChatOption {
                         "\"feeling\": 1}");
     }
 
-    public final int default_context_size = 4;
+    public final int default_context_size = 8;
 
 }
