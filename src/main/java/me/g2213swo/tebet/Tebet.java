@@ -1,7 +1,6 @@
 package me.g2213swo.tebet;
 
 import me.g2213swo.tebet.commands.TebetConsoleCommand;
-import me.g2213swo.tebet.listener.MCServerPubSubUtil;
 import me.g2213swo.tebet.listener.TebetMessage;
 import me.g2213swo.tebet.listener.TebetOnline;
 import me.g2213swo.tebet.utils.Config;
@@ -14,7 +13,6 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import net.mamoe.mirai.utils.MiraiLogger;
 import org.jetbrains.annotations.NotNull;
-import redis.clients.jedis.Jedis;
 
 public final class Tebet extends JavaPlugin {
 
