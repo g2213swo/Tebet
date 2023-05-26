@@ -6,10 +6,10 @@ import net.mamoe.mirai.console.command.java.JRawCommand;
 import net.mamoe.mirai.message.data.MessageChain;
 import org.jetbrains.annotations.NotNull;
 
-public class TebetCommand extends JRawCommand {
-    public static final TebetCommand INSTANCE = new TebetCommand();
+public class TebetConsoleCommand extends JRawCommand {
+    public static final TebetConsoleCommand INSTANCE = new TebetConsoleCommand();
 
-    private TebetCommand() {
+    private TebetConsoleCommand() {
         super(Tebet.INSTANCE, "tebet"); // 使用插件主类对象作为指令拥有者；设置主指令名为 "tebet"
         setUsage("/tebet"); // 设置用法，这将会在 /help 中展示
         setDescription("Tebet机器酱系列指令"); // 设置描述，也会在 /help 中展示

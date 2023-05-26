@@ -27,10 +27,14 @@ import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public abstract class TebetMessageHandler {
-    private static final MiraiLogger logger = Tebet.INSTANCE.getLogger();
+    protected final MiraiLogger logger = Tebet.INSTANCE.getLogger();
 
     private final ChatApiClientImpl chatApiClient = new ChatApiClientImpl();
     private final Gson gson = new GsonBuilder().registerTypeAdapter(ChatUser.class, (JsonSerializer<ChatUser>) (src, typeOfSrc, context) -> {
@@ -46,8 +50,12 @@ public abstract class TebetMessageHandler {
     }).create();
 
     private final RequestDebouncer debouncer = new RequestDebouncer();
+    private final ScheduledExecutorService schedule = Executors.newScheduledThreadPool(1);
+
+    private final Random random = new Random();
 
     public static boolean isAngry = false;
+
 
     protected void handleGPTMessage(ChatUser chatUser, MessageEvent event, Consumer<MessageChain> sendMessage) {
         handleGPTMessage(chatUser, event, sendMessage, false);
@@ -66,8 +74,8 @@ public abstract class TebetMessageHandler {
                 return;
             }
 
+            //转换成用户Json
             String chatUserJson = gson.toJson(chatUser);
-
 
             //保存消息
             if (!isSecondSend) {
@@ -83,6 +91,8 @@ public abstract class TebetMessageHandler {
             String replay = gptResponse.getMessage().getContent();
 
             replay = "[" + replay + "]";
+            replay = replay.replaceAll("\n", "");
+
 
             //debug
             logger.info(replay);
@@ -90,32 +100,10 @@ public abstract class TebetMessageHandler {
             if (gptResponse.isSuccess() && gptResponse.getMessage().getRole() == MessageRole.assistant) {
                 ChatContextHolder.saveChatMessage(chatUser, gptResponse.getMessage());
 
+                //获取要发送的消息列表
+                List<MessageChain> singleMessages = handleOutputs(replay);
                 // 4. send message
-                List<String> content = JsonPath.read(replay, "$..content");
-
-                List<Integer> feeling = JsonPath.read(replay, "$..feeling");
-                Feeling feelingEnum = Feeling.getFeeling(feeling.get(0));
-
-                if (feelingEnum == null) {
-                    throw new IllegalArgumentException();
-                }
-
-                Image feelingImage = FeelingUtil.getFeelingImage(feelingEnum);
-                MessageChain messageChain;
-                if (feelingImage == null) {
-                    messageChain = new MessageChainBuilder().append(content.toString()).append("\n").append("情绪：").append(feelingEnum.getFeelingName()).build();
-                } else {
-                    Image.Builder feelingImageBuilder = Image.Builder.newBuilder(feelingImage.getImageId());
-                    feelingImageBuilder.setEmoji(true);
-                    feelingImageBuilder.setSize(233);
-                    feelingImageBuilder.setHeight(feelingImage.getHeight());
-                    feelingImageBuilder.setWidth(feelingImage.getWidth());
-                    feelingImageBuilder.setType(feelingImage.getImageType());
-                    messageChain = new MessageChainBuilder().append(content.toString()).append("\n").append(feelingImageBuilder.build()).append("\n").build();
-                }
-                sendMessage.accept(messageChain);
-
-                debouncer.onRequestFinished(chatUser.getQQ());
+                sendMessages(chatUser, singleMessages, sendMessage);
             } else {
                 logger.warning("message type not support");
                 sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
@@ -126,6 +114,100 @@ public abstract class TebetMessageHandler {
         } finally {
             debouncer.onRequestFinished(chatUser.getQQ());
         }
+    }
+
+    /**
+     * 处理输出
+     *
+     * @param replay 输出
+     * @return 消息链
+     */
+    protected List<MessageChain> handleOutputs(String replay) {
+
+        List<String> content = JsonPath.read(replay, "$..content");
+
+        List<Integer> feeling = JsonPath.read(replay, "$..feeling");
+
+        //debug
+        logger.info("content: " + content);
+        logger.info("feeling: " + feeling);
+
+        if (content.size() != feeling.size()) {
+            throw new IllegalArgumentException("content size not equal to feeling size");
+        }
+
+        List<MessageChain> messageChains = new ArrayList<>();
+        for (int i = 0; i < content.size(); i++) {
+            Feeling feelingEnum = Feeling.getFeeling(feeling.get(i));
+
+            if (feelingEnum == null) {
+                throw new IllegalArgumentException("feeling" + feeling.get(i) + "is null");
+            }
+
+            Image feelingImage = FeelingUtil.getFeelingImage(feelingEnum);
+
+            MessageChain messageChain;
+            if (feelingImage == null) {
+                messageChain = new MessageChainBuilder()
+                        .append(content.get(i))
+                        .append("\n")
+                        .append("情绪：")
+                        .append(feelingEnum.getFeelingName())
+                        .build();
+            } else {
+                Image.Builder feelingImageBuilder = Image.Builder.newBuilder(feelingImage.getImageId());
+                feelingImageBuilder.setEmoji(true);
+                feelingImageBuilder.setSize(233);
+                feelingImageBuilder.setHeight(feelingImage.getHeight());
+                feelingImageBuilder.setWidth(feelingImage.getWidth());
+                feelingImageBuilder.setType(feelingImage.getImageType());
+                messageChain = new MessageChainBuilder()
+                        .append(content.get(i))
+                        .append("\n")
+                        .append(feelingImageBuilder.build())
+                        .append("\n")
+                        .build();
+            }
+            messageChains.add(messageChain);
+        }
+        return messageChains;
+    }
+
+    /**
+     * 隔随机秒数发送消息，直到列表里的消息全部发送完毕
+     *
+     * @param chatUser      用户
+     * @param messageChains 消息列表
+     * @param sendMessage   发送消息的方法
+     */
+    protected void sendMessages(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage) {
+        sendMessagesWithDelay(chatUser, messageChains, sendMessage, 0);
+    }
+
+    /**
+     * 隔delay秒发送消息，直到列表里的消息全部发送完毕
+     *
+     * @param chatUser      用户
+     * @param messageChains 消息列表
+     * @param sendMessage   发送消息的方法
+     * @param delay         延迟
+     */
+    protected void sendMessagesWithDelay(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage, int delay) {
+        // 消息发送完毕
+        if (messageChains.size() == 0) {
+            debouncer.onRequestFinished(chatUser.getQQ());
+            return;
+        }
+
+        logger.info("delay: " + delay);
+
+        schedule.schedule(() -> {
+            sendMessage.accept(messageChains.get(0));
+            int nextDelay = random.nextInt(5) + messageChains.get(0).contentToString().length() / 10 + 1;
+            messageChains.remove(0);
+            // 递归调用
+            sendMessagesWithDelay(chatUser, messageChains, sendMessage, nextDelay);
+        }, delay, TimeUnit.SECONDS);
     }
 
     /**
@@ -156,6 +238,9 @@ public abstract class TebetMessageHandler {
 
     /**
      * 处理特定消息
+     *
+     * @param event    消息事件
+     * @param chatUser 用户
      */
     private boolean handleSpecialMessage(MessageEvent event, ChatUser chatUser) {
         String message = event.getMessage().contentToString();
@@ -173,10 +258,12 @@ public abstract class TebetMessageHandler {
                     messageChainBuilder.append("暴躁模式启动成功");
                     chatUser.setSendAngryStrOnce(true);
                     isAngry = true;
+                    ChatContextHolder.clearChatContext(chatUser);
                     break;
                 case ANGRY_STOP:
                     messageChainBuilder.append("暴躁模式关闭成功");
                     isAngry = false;
+                    ChatContextHolder.clearChatContext(chatUser);
                     break;
                 case ANGRY_STATUS:
                     if (isAngry) {
@@ -209,4 +296,5 @@ public abstract class TebetMessageHandler {
         }
         return false;
     }
+
 }

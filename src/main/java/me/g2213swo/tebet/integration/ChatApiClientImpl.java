@@ -138,4 +138,16 @@ public class ChatApiClientImpl implements ChatApiClient {
         }
         return new ChatResponse(false, new ChatMessage(MessageRole.system, "system unknown error"));
     }
+
+    /**
+     * 无聊天上下文的聊天
+     * @param chatId 用户id
+     * @param message 用户输入
+     * @return 聊天结果
+     */
+    public @NotNull ChatResponse chat(long chatId, String message){
+        ChatOption chatOption = new ChatOption();
+        return chat(chatId, List.of(new ChatMessage(MessageRole.system, chatOption.getSystemInput()),
+                new ChatMessage(MessageRole.user, message)), null);
+    }
 }
