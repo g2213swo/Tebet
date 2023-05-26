@@ -41,11 +41,6 @@ public abstract class TebetMessageHandler {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("message", src.getMessage());
 
-        if (src.shouldSendAngryStrOnce()) {
-            jsonObject.addProperty("angryStr", src.getAngryStr());
-            src.setSendAngryStrOnce(false);
-        }
-
         return jsonObject;
     }).create();
 
@@ -53,9 +48,6 @@ public abstract class TebetMessageHandler {
     private final ScheduledExecutorService schedule = Executors.newScheduledThreadPool(1);
 
     private final Random random = new Random();
-
-    public static boolean isAngry = false;
-
 
     protected void handleGPTMessage(ChatUser chatUser, MessageEvent event, Consumer<MessageChain> sendMessage) {
         handleGPTMessage(chatUser, event, sendMessage, false);
@@ -203,7 +195,7 @@ public abstract class TebetMessageHandler {
 
         schedule.schedule(() -> {
             sendMessage.accept(messageChains.get(0));
-            int nextDelay = random.nextInt(5) + messageChains.get(0).contentToString().length() / 10 + 1;
+            int nextDelay = random.nextInt(3) + messageChains.get(0).contentToString().length() / 15 + 1;
             messageChains.remove(0);
             // 递归调用
             sendMessagesWithDelay(chatUser, messageChains, sendMessage, nextDelay);
@@ -254,27 +246,6 @@ public abstract class TebetMessageHandler {
 
         if (command != null) {
             switch (command) {
-                case ANGRY_START:
-                    messageChainBuilder.append("暴躁模式启动成功");
-                    chatUser.setSendAngryStrOnce(true);
-                    isAngry = true;
-                    ChatContextHolder.clearChatContext(chatUser);
-                    break;
-                case ANGRY_STOP:
-                    messageChainBuilder.append("暴躁模式关闭成功");
-                    isAngry = false;
-                    ChatContextHolder.clearChatContext(chatUser);
-                    break;
-                case ANGRY_STATUS:
-                    if (isAngry) {
-                        messageChainBuilder.append("暴躁模式开启中");
-                    } else {
-                        messageChainBuilder.append("暴躁模式关闭中");
-                    }
-                    break;
-                case ANGRY_HELP:
-                    messageChainBuilder.append("暴躁模式启动：暴躁模式启动\n" + "暴躁模式关闭：暴躁模式关闭\n" + "暴躁模式状态：暴躁模式状态\n" + "暴躁模式帮助：暴躁模式帮助");
-                    break;
                 case SERVER_INFO:
                     List<ChatMessage> serverInfoChatContext = new ArrayList<>(List.of(new ChatMessage(MessageRole.system, chatUser.getChatOption().getSystemInput())));
                     if (ServerInfoReceiver.getServerInfo() != null) {

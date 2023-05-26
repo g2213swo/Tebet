@@ -34,17 +34,6 @@ public class TebetMessage extends TebetMessageHandler implements ListenerHost {
         // 获取用户
         ChatUser chatUser = chatUserFactory.getChatUser(event.getFriend().getId());
 
-        if (images.size() > 0) {
-            ImageUtil.processImageMessage(images).thenAccept(result -> {
-                if (result != null) {
-                    chatUser.setMessage(result);
-                    //debug
-                    logger.info("OCR result: " + result);
-                    handleGPTMessage(chatUser, event, messageChain -> event.getFriend().sendMessage(messageChain));
-                }
-            });
-            return;
-        }
         chatUser.setMessage(message.contentToString());
         handleGPTMessage(chatUser, event, messageChain -> event.getFriend().sendMessage(messageChain));
     }
@@ -63,18 +52,6 @@ public class TebetMessage extends TebetMessageHandler implements ListenerHost {
         ChatUser chatUser = chatUserFactory.getChatUser(event.getSender().getId());
 
         if (groupId != 361392400 && groupId != 795130802) {
-            return;
-        }
-
-        if (images.size() > 0) {
-            ImageUtil.processImageMessage(images).thenAccept(result -> {
-                if (result != null) {
-                    chatUser.setMessage(result);
-                    //debug
-                    logger.info("Group OCR result: " + result);
-                    messages.add("图片内容：" + result);
-                }
-            });
             return;
         }
 
