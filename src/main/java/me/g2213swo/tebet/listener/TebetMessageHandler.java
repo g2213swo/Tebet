@@ -17,6 +17,7 @@ import me.g2213swo.tebet.receiver.ServerInfoReceiver;
 import me.g2213swo.tebet.utils.ChatContextHolder;
 import me.g2213swo.tebet.utils.FeelingUtil;
 import me.g2213swo.tebet.utils.RequestDebouncer;
+import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.At;
@@ -33,9 +34,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+
 public abstract class TebetMessageHandler {
     protected final MiraiLogger logger = Tebet.INSTANCE.getLogger();
 
+    private final Bot bot = Tebet.INSTANCE.getTebetBot();
     private final ChatApiClientImpl chatApiClient = new ChatApiClientImpl();
     private final Gson gson = new GsonBuilder().registerTypeAdapter(ChatUser.class, (JsonSerializer<ChatUser>) (src, typeOfSrc, context) -> {
         JsonObject jsonObject = new JsonObject();
@@ -55,6 +58,10 @@ public abstract class TebetMessageHandler {
 
     protected void handleGPTMessage(ChatUser chatUser, MessageEvent event, Consumer<MessageChain> sendMessage, boolean isSecondSend) {
         try {
+            if (chatUser.getQQ() == bot.getId()) {
+                return;
+            }
+
             //请求防抖
             if (!debouncer.shouldAllowRequest(chatUser.getQQ()) && !isSecondSend) {
                 throw new SpamException(chatUser.getQQ() + "请求过多！");
@@ -80,25 +87,25 @@ public abstract class TebetMessageHandler {
             chatContext.add(0, new ChatMessage(MessageRole.system, chatUser.getChatOption().getSystemInput()));
 
             ChatApiClientImpl.ChatResponse gptResponse = chatApiClient.chat(chatUser.getQQ(), chatContext, null);
-            String replay = gptResponse.getMessage().getContent();
+            String reply = gptResponse.getMessage().getContent();
 
-            replay = "[" + replay + "]";
-            replay = replay.replaceAll("\n", "");
+            reply = "[" + reply + "]";
+            reply = reply.replaceAll("\n", "");
 
 
             //debug
-            logger.info(replay);
+            logger.info(reply);
 
             if (gptResponse.isSuccess() && gptResponse.getMessage().getRole() == MessageRole.assistant) {
                 ChatContextHolder.saveChatMessage(chatUser, gptResponse.getMessage());
 
                 //获取要发送的消息列表
-                List<MessageChain> singleMessages = handleOutputs(replay);
+                List<MessageChain> singleMessages = handleOutputs(reply);
                 // 4. send message
                 sendMessages(chatUser, singleMessages, sendMessage);
             } else {
                 logger.warning("message type not support");
-                sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
+                sendMessage.accept(new MessageChainBuilder().append("呜呜，Tebet脑子过载了༼ つ ◕_◕ ༽つ").build());
                 debouncer.onRequestFinished(chatUser.getQQ());
             }
         } catch (PathNotFoundException | IllegalArgumentException | SpamException e) {
@@ -139,12 +146,10 @@ public abstract class TebetMessageHandler {
             Image feelingImage = FeelingUtil.getFeelingImage(feelingEnum);
 
             MessageChain messageChain;
-            if (feelingImage == null) {
+            //随机概率发送表情
+            if (feelingImage == null || random.nextInt(100) > 40) {
                 messageChain = new MessageChainBuilder()
                         .append(content.get(i))
-                        .append("\n")
-                        .append("情绪：")
-                        .append(feelingEnum.getFeelingName())
                         .build();
             } else {
                 Image.Builder feelingImageBuilder = Image.Builder.newBuilder(feelingImage.getImageId());
@@ -173,7 +178,7 @@ public abstract class TebetMessageHandler {
      * @param sendMessage   发送消息的方法
      */
     protected void sendMessages(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage) {
-        sendMessagesWithDelay(chatUser, messageChains, sendMessage, 0);
+        sendMessagesWithDelay(chatUser, messageChains, sendMessage, random.nextInt(3), TimeUnit.SECONDS);
     }
 
     /**
@@ -184,22 +189,22 @@ public abstract class TebetMessageHandler {
      * @param sendMessage   发送消息的方法
      * @param delay         延迟
      */
-    protected void sendMessagesWithDelay(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage, int delay) {
+    protected void sendMessagesWithDelay(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage, int delay, TimeUnit timeUnit) {
         // 消息发送完毕
         if (messageChains.size() == 0) {
             debouncer.onRequestFinished(chatUser.getQQ());
             return;
         }
-
-        logger.info("delay: " + delay);
+        //debug
+//        logger.info("delay: " + delay);
 
         schedule.schedule(() -> {
             sendMessage.accept(messageChains.get(0));
-            int nextDelay = random.nextInt(3) + messageChains.get(0).contentToString().length() / 15 + 1;
+            int nextDelay = random.nextInt(10) + messageChains.get(0).contentToString().length() / 8 + 1;
             messageChains.remove(0);
             // 递归调用
-            sendMessagesWithDelay(chatUser, messageChains, sendMessage, nextDelay);
-        }, delay, TimeUnit.SECONDS);
+            sendMessagesWithDelay(chatUser, messageChains, sendMessage, nextDelay, timeUnit);
+        }, delay, timeUnit);
     }
 
     /**
@@ -214,7 +219,7 @@ public abstract class TebetMessageHandler {
             // 删除所有特殊字符
             String contentEscaped = chatUser.getMessage().replaceAll("[^0-9a-zA-Z\\u4e00-\\u9fa5]", "");
             if (contentEscaped.length() == 0) {
-                sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
+                sendMessage.accept(new MessageChainBuilder().append("呜呜，Tebet脑子过载了༼ つ ◕_◕ ༽つ").build());
             } else {
                 // 重新发送
                 chatUser.setMessage(contentEscaped);
@@ -224,7 +229,7 @@ public abstract class TebetMessageHandler {
             sendMessage.accept(new MessageChainBuilder().append("我还在思考QWQ").build());
             logger.warning(e.getMessage());
         } else {
-            sendMessage.accept(new MessageChainBuilder().append("很抱歉，Tebet出错了").build());
+            sendMessage.accept(new MessageChainBuilder().append("呜呜，Tebet脑子过载了༼ つ ◕_◕ ༽つ").build());
         }
     }
 
@@ -246,6 +251,10 @@ public abstract class TebetMessageHandler {
 
         if (command != null) {
             switch (command) {
+                case CLEAR:
+                    chatUser.clear();
+                    messageChainBuilder.append("Tebet突然失去了与你的记忆UWU");
+                    break;
                 case SERVER_INFO:
                     List<ChatMessage> serverInfoChatContext = new ArrayList<>(List.of(new ChatMessage(MessageRole.system, chatUser.getChatOption().getSystemInput())));
                     if (ServerInfoReceiver.getServerInfo() != null) {

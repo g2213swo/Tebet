@@ -11,7 +11,8 @@ public class RequestDebouncer {
     private static final int ALLOWED_INTERVAL_SECONDS = 3;
 
     private final Map<Long, LocalDateTime> userRequests = new HashMap<>();
-    private final Set<Long> activeUsers = new HashSet<>();
+
+    private final Set<Long> users = new HashSet<>();
 
     public boolean shouldAllowRequest(long userId) {
         LocalDateTime now = LocalDateTime.now();
@@ -24,9 +25,9 @@ public class RequestDebouncer {
             }
         }
 
-        if (!activeUsers.contains(userId)) {
+        if (!users.contains(userId)) {
             userRequests.put(userId, now);
-            activeUsers.add(userId);
+            users.add(userId);
             return true;
         }
 
@@ -36,6 +37,6 @@ public class RequestDebouncer {
     public void onRequestFinished(long userId) {
         LocalDateTime now = LocalDateTime.now();
         userRequests.put(userId, now);
-        activeUsers.remove(userId);
+        users.remove(userId);
     }
 }

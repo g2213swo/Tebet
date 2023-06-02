@@ -25,7 +25,7 @@ public final class ChatContextHolder {
         LRUCache.LRUChatSet context = CHAT_CONTEXTS.get(chatUser.getQQ());
 
         //初始化引导
-        if (context == null) {
+        if (context == null || context.size() == 0) {
             List<String> assistantInputs = chatUser.getChatOption().getAssistantInputs(chatUser);
             context = new LRUCache.LRUChatSet(chatUser.getChatOption().default_context_size + assistantInputs.size());
             for (String string : assistantInputs) {
