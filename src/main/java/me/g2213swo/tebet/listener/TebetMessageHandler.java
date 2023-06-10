@@ -27,6 +27,7 @@ import net.mamoe.mirai.message.data.MessageChainBuilder;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -42,13 +43,14 @@ public abstract class TebetMessageHandler {
     private final ChatApiClientImpl chatApiClient = new ChatApiClientImpl();
     private final Gson gson = new GsonBuilder().registerTypeAdapter(ChatUser.class, (JsonSerializer<ChatUser>) (src, typeOfSrc, context) -> {
         JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("name", src.getNickName());
         jsonObject.addProperty("message", src.getMessage());
 
         return jsonObject;
     }).create();
 
     private final RequestDebouncer debouncer = new RequestDebouncer();
-    private final ScheduledExecutorService schedule = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService schedule = Executors.newScheduledThreadPool(8);
 
     private final Random random = new Random();
 
@@ -124,6 +126,9 @@ public abstract class TebetMessageHandler {
     protected List<MessageChain> handleOutputs(String replay) {
 
         List<String> content = JsonPath.read(replay, "$..content");
+        if (content.isEmpty()) {
+            content = JsonPath.read(replay, "$..message");
+        }
 
         List<Integer> feeling = JsonPath.read(replay, "$..feeling");
 
@@ -131,8 +136,14 @@ public abstract class TebetMessageHandler {
         logger.info("content: " + content);
         logger.info("feeling: " + feeling);
 
-        if (content.size() != feeling.size()) {
-            throw new IllegalArgumentException("content size not equal to feeling size");
+        if (feeling.isEmpty()){
+            for (int i = 0; i < content.size(); i++) {
+                feeling.add(0);
+            }
+        }
+
+        if (content.isEmpty() || content.size() != feeling.size()) {
+            throw new IllegalArgumentException("content size is not equal to feeling size");
         }
 
         List<MessageChain> messageChains = new ArrayList<>();
@@ -147,7 +158,7 @@ public abstract class TebetMessageHandler {
 
             MessageChain messageChain;
             //随机概率发送表情
-            if (feelingImage == null || random.nextInt(100) > 40) {
+            if (feelingImage == null || random.nextInt(100) < 40) {
                 messageChain = new MessageChainBuilder()
                         .append(content.get(i))
                         .build();
@@ -189,22 +200,18 @@ public abstract class TebetMessageHandler {
      * @param sendMessage   发送消息的方法
      * @param delay         延迟
      */
-    protected void sendMessagesWithDelay(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage, int delay, TimeUnit timeUnit) {
-        // 消息发送完毕
-        if (messageChains.size() == 0) {
-            debouncer.onRequestFinished(chatUser.getQQ());
-            return;
-        }
-        //debug
-//        logger.info("delay: " + delay);
 
-        schedule.schedule(() -> {
-            sendMessage.accept(messageChains.get(0));
-            int nextDelay = random.nextInt(10) + messageChains.get(0).contentToString().length() / 8 + 1;
-            messageChains.remove(0);
-            // 递归调用
-            sendMessagesWithDelay(chatUser, messageChains, sendMessage, nextDelay, timeUnit);
-        }, delay, timeUnit);
+    protected void sendMessagesWithDelay(ChatUser chatUser, List<MessageChain> messageChains, Consumer<MessageChain> sendMessage, int delay, TimeUnit timeUnit) {
+        Iterator<MessageChain> iterator = messageChains.iterator();
+        while (iterator.hasNext()) {
+            MessageChain message = iterator.next();
+            iterator.remove();
+            schedule.schedule(() -> {
+                sendMessage.accept(message);
+            }, delay, timeUnit);
+            delay = random.nextInt(10) + message.contentToString().length() / 8 + 1;
+        }
+        debouncer.onRequestFinished(chatUser.getQQ());
     }
 
     /**

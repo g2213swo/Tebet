@@ -1,8 +1,11 @@
 package me.g2213swo.tebet.model;
 
+import me.g2213swo.tebet.Tebet;
 import me.g2213swo.tebet.utils.ChatContextHolder;
+import net.mamoe.mirai.Bot;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatUser {
@@ -11,10 +14,22 @@ public class ChatUser {
     private String message = "";
     private final transient ChatOption chatOption = new ChatOption();
 
+    private String nickName;
+
     private ChatUser(long qq) {
         this.qq = qq;
+        try {
+            Bot bot = Tebet.INSTANCE.getTebetBot();
+            this.nickName = bot.getFriendOrFail(qq).getNick();
+        }catch (NoSuchElementException e) {
+            this.nickName = "Unknown";
+        }
     }
 
+    private ChatUser(long qq, String nickName) {
+        this.qq = qq;
+        this.nickName = nickName;
+    }
 
     public long getQQ() {
         return qq;
@@ -26,6 +41,10 @@ public class ChatUser {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getNickName() {
+        return nickName;
     }
 
     public ChatOption getChatOption() {
@@ -56,6 +75,16 @@ public class ChatUser {
                 return chatUsers.get(qq);
             } else {
                 ChatUser newUser = new ChatUser(qq);
+                chatUsers.put(qq, newUser);
+                return newUser;
+            }
+        }
+
+        public ChatUser getChatUserWithNick(long qq, String nickName) {
+            if (chatUsers.containsKey(qq)) {
+                return chatUsers.get(qq);
+            } else {
+                ChatUser newUser = new ChatUser(qq, nickName);
                 chatUsers.put(qq, newUser);
                 return newUser;
             }

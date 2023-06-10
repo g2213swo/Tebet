@@ -33,7 +33,7 @@ public class TebetMessage extends TebetMessageHandler implements ListenerHost {
         // 获取图片
         List<Image> images = ImageUtil.getImages(message);
         // 获取用户
-        ChatUser chatUser = chatUserFactory.getChatUser(event.getFriend().getId());
+        ChatUser chatUser = chatUserFactory.getChatUserWithNick(event.getFriend().getId(), event.getFriend().getNick());
 
         chatUser.setMessage(message.contentToString());
         handleGPTMessage(chatUser, event, messageChain -> event.getFriend().sendMessage(messageChain));
@@ -49,8 +49,14 @@ public class TebetMessage extends TebetMessageHandler implements ListenerHost {
         MessageChain groupMessageChain = event.getMessage();
         // 获取图片
         List<Image> images = ImageUtil.getImages(groupMessageChain);
+
+        //处理图片
+        if (images.size() > 0) {
+            return;
+        }
+
         //获取用户
-        ChatUser chatUser = chatUserFactory.getChatUser(event.getSender().getId());
+        ChatUser chatUser = chatUserFactory.getChatUserWithNick(event.getSender().getId(), event.getSender().getNick());
 
         if (groupId != 361392400 && groupId != 795130802) {
             return;
@@ -66,7 +72,7 @@ public class TebetMessage extends TebetMessageHandler implements ListenerHost {
                     //去除@机器人的前缀
                     String messageWithoutPrefix = message.replaceFirst("^@[1-9][0-9]{4,10}", "");
                     chatUser.setMessage(messageWithoutPrefix);
-
+                    messages.clear();
                     handleGPTMessage(chatUser, event, messageChain -> event.getGroup().sendMessage(messageChain));
                     return;
                 }
