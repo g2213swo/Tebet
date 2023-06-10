@@ -4,3 +4,9 @@ version: 0.1.0
 api-version: 1.19
 author: g2213swo
 description: MineTebet plugin
+commands:
+  minetebet:
+    description: MineTebet command
+    usage: /minetebet
+    aliases:
+        - mt
