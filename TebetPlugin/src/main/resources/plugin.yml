@@ -1,0 +1,11 @@
+name: Tebet
+main: me.g2213swo.tebet.TebetPlugin
+version: 0.0.1
+author: g2213swo
+api-version: 1.18
+commands:
+  tebet:
+    description: Tebet command
+    usage: /<command> [args]
+depend:
+  - ProtocolLib
