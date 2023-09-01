@@ -10,12 +10,12 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
-public class ChatCommands extends AbstractSubCommand {
-    public static final ChatCommands INSTANCE = new ChatCommands();
+public class ChatCmd extends AbstractSubCommand {
+    public static final ChatCmd INSTANCE = new ChatCmd();
 
     private final ChatListener chatListener;
 
-    public ChatCommands() {
+    public ChatCmd() {
         super("chat");
         this.chatListener = ((ListenerManager) TebetPlugin.getInstance().getManager(ListenerManager.class)).getChatListener();
     }

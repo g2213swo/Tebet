@@ -10,14 +10,16 @@ import me.g2213swo.tebet.TebetPlugin;
 import me.g2213swo.tebet.chat.ChatMessageImpl;
 import me.g2213swo.tebet.chat.integration.ChatApiClientImpl;
 import me.g2213swo.tebet.data.ChatContextHolder;
+import me.g2213swo.tebet.utils.AdventureUtil;
 import me.g2213swo.tebet.utils.ComponentUtil;
+import me.g2213swo.tebetapi.integration.ChatApiClient;
 import me.g2213swo.tebetapi.integration.ChatResponse;
 import me.g2213swo.tebetapi.model.ChatMessage;
 import me.g2213swo.tebetapi.model.ChatUser;
 import me.g2213swo.tebetapi.model.MessageRole;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
@@ -31,7 +33,7 @@ import java.util.function.Consumer;
 public abstract class TebetMessageHandler {
     protected final ComponentLogger logger;
 
-    private final ChatApiClientImpl chatApiClient;
+    private final ChatApiClient chatApiClient;
     private final Gson gson;
     private final TebetPlugin plugin;
     protected RequestDebouncer debouncer = new RequestDebouncer();
@@ -50,7 +52,7 @@ public abstract class TebetMessageHandler {
             return jsonObject;
         }).create();
         this.logger = ComponentLogger.logger("TebetChat");
-        this.chatApiClient = new ChatApiClientImpl(plugin);
+        this.chatApiClient = ChatApiClientImpl.getINSTANCE();
     }
 
     protected void handleGPTMessage(ChatUser chatUser, Consumer<Component> sendMessage) {
@@ -61,9 +63,9 @@ public abstract class TebetMessageHandler {
             }
             // 转换成用户Json
             String chatUserJson = gson.toJson(chatUser);
-
+            List<String> assistantInputs = chatUser.getChatOption().getAssistantInputs(chatUser);
             // 保存消息
-            ChatContextHolder.saveChatMessage(chatUser, new ChatMessageImpl(MessageRole.user, chatUserJson));
+            ChatContextHolder.saveChatMessage(chatUser, new ChatMessageImpl(MessageRole.user, chatUserJson), assistantInputs);
 
             // 获取上下文
             List<ChatMessage> chatContext = ChatContextHolder.getChatContext(chatUser);
@@ -72,15 +74,13 @@ public abstract class TebetMessageHandler {
 
             ChatResponse gptResponse = chatApiClient.chat(chatUser.getUUID(), chatContext, null);
             String reply = gptResponse.message().getContent();
-
             reply = "[" + reply + "]";
-            reply = reply.replaceAll("\n", "");
 
             // debug
             logger.info(reply);
 
             if (gptResponse.success() && gptResponse.message().getRole() == MessageRole.assistant) {
-                ChatContextHolder.saveChatMessage(chatUser, gptResponse.message());
+                ChatContextHolder.saveChatMessage(chatUser, gptResponse.message(), List.of());
 
                 // 获取要发送的消息列表
                 List<Component> singleMessages = handleOutputs(reply);
@@ -137,7 +137,7 @@ public abstract class TebetMessageHandler {
         while (iterator.hasNext()) {
             Component component = iterator.next();
             iterator.remove();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () ->{
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 sendMessage.accept(component);
                 Player player = chatUser.getPlayer();
                 if (player != null) {
@@ -146,8 +146,10 @@ public abstract class TebetMessageHandler {
                 if (components.isEmpty()) {
                     debouncer.onRequestFinished(chatUser.getUUID());
                 }
+                AdventureUtil.sendActionbarPacket(player, Component.text("Tebet正在发送...")
+                        .color(TextColor.color(random.nextInt(256), random.nextInt(256), random.nextInt(256))));
             }, delay * 20L);
-            delay = random.nextInt(3) + PlainTextComponentSerializer.plainText().serialize(component).length() / 10 + 1;
+            delay = delay + random.nextInt(3) + ComponentUtil.asPlainText(component).length() / 10 + 1;
         }
         debouncer.onRequestFinished(chatUser.getUUID());
     }

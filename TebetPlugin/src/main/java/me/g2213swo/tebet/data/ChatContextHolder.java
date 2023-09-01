@@ -2,10 +2,10 @@ package me.g2213swo.tebet.data;
 
 
 import me.g2213swo.tebet.chat.ChatMessageImpl;
-import me.g2213swo.tebet.data.LRUCache;
 import me.g2213swo.tebetapi.model.ChatMessage;
 import me.g2213swo.tebetapi.model.ChatUser;
 import me.g2213swo.tebetapi.model.MessageRole;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,30 +19,24 @@ public final class ChatContextHolder {
      */
     private static final Map<UUID, LRUCache.LRUChatSet> CHAT_CONTEXTS = new ConcurrentHashMap<>();
 
-    public static void saveChatMessage(ChatUser chatUser, ChatMessage chatMessage) {
-        saveChatMessage(chatUser, chatMessage, false); // 默认情况下，pinMessage 为 false
-    }
-
-    public static void saveChatMessage(ChatUser chatUser, ChatMessage chatMessage, boolean pinMessage) {
+    public static void saveChatMessage(ChatUser chatUser, ChatMessage chatMessage, @NotNull List<String> assistantInputs) {
         LRUCache.LRUChatSet context = CHAT_CONTEXTS.get(chatUser.getUUID());
-
-        //初始化引导
-        if (context == null || context.isEmpty()) {
-            List<String> assistantInputs = chatUser.getChatOption().getAssistantInputs(chatUser);
+        // 初始化引导
+        // TODO: 添加微调API的支持
+        if (context == null || context.isEmpty() && !assistantInputs.isEmpty()) {
             context = new LRUCache.LRUChatSet(chatUser.getChatOption().default_context_size + assistantInputs.size());
-            for (String string : assistantInputs) {
-                context.add(new ChatMessageImpl(MessageRole.assistant, string));
+            // 添加助手消息
+            for (String assistantInput : assistantInputs) {
+                context.add(new ChatMessageImpl(MessageRole.assistant, assistantInput));
             }
         }
 
+
         context.add(chatMessage);
         CHAT_CONTEXTS.put(chatUser.getUUID(), context);
-
-        if (pinMessage) {
-            pinChatMessage(chatUser, chatMessage);
-        }
     }
 
+    @NotNull
     public static List<ChatMessage> getChatContext(ChatUser chatUser) {
         LRUCache.LRUChatSet chatSet = CHAT_CONTEXTS.get(chatUser.getUUID());
         if (chatSet == null) {
@@ -55,20 +49,4 @@ public final class ChatContextHolder {
         CHAT_CONTEXTS.remove(chatUser.getUUID());
     }
 
-
-    public static void pinChatMessage(ChatUser chatUser, ChatMessage chatMessage) {
-        LRUCache.LRUChatSet context = CHAT_CONTEXTS.get(chatUser.getUUID());
-
-        if (context != null) {
-            context.pinKey(chatMessage);
-        }
-    }
-
-    public static void unpinChatMessage(ChatUser chatUser, ChatMessage chatMessage) {
-        LRUCache.LRUChatSet context = CHAT_CONTEXTS.get(chatUser.getUUID());
-
-        if (context != null) {
-            context.unpinKey(chatMessage);
-        }
-    }
 }

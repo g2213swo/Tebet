@@ -12,7 +12,7 @@ public class TebetAPIProvider {
      * <p>Ideally, the ServiceManager for the platform should be used to obtain an
      * instance, however, this provider can be used if this is not viable.</p>
      *
-     * @return an instance of the GemsEconomy API
+     * @return an instance of the TebetAPI
      * @throws IllegalStateException if the API is not loaded yet
      */
     public static @NotNull TebetAPI get() {
